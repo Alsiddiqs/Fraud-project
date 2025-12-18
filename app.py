@@ -1,12 +1,15 @@
 # =============================================================================
-# EMKAN FINANCE - LOAN JOURNEY + FRAUD SCORING DEMO (UI ONLY)
-# Master's Thesis Project - Midocean University
-# Authors: Alsiddiq & Mohammed Abdu
-# Supervisor: Dr. Khaled Eskaf
+# EMKAN FINANCE – AI Loan Application Screening (Final Demo Version)
 #
-# IMPORTANT:
+# Researchers:
+#  - ELSEDEEG MOAHMEDELBASHER ABDALLA AHMED
+#  - MOHAMED ABDELSATART
+# Supervisor:
+#  - Dr. Khaled Iskaf
+#
+# NOTE:
 # - Model is NOT changed.
-# - Only UI flow + input shaping to match the trained Pipeline.
+# - This is a UI & journey demo with deterministic control (hidden).
 # =============================================================================
 
 import streamlit as st
@@ -14,7 +17,7 @@ import pandas as pd
 import numpy as np
 import joblib
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime
 import time
 import re
 
@@ -22,641 +25,272 @@ import re
 # PAGE CONFIG
 # =============================================================================
 st.set_page_config(
-    page_title="إمكان للتمويل - طلب تمويل",
+    page_title="EMKAN Finance | Apply for Finance",
     page_icon="💙",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="collapsed"
 )
 
 # =============================================================================
-# STYLING (EMKAN-LIKE THEME)
+# GLOBAL STYLES (EMKAN LOOK & FEEL)
 # =============================================================================
-st.markdown(
-    """
+st.markdown("""
 <style>
-    .main { padding: 1.6rem; background: #f5f7fa; }
+.main { padding: 0 !important; background: #f5f7fa; }
+.block-container { padding: 0 !important; max-width: 100% !important; }
 
-    .emkan-header {
-        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-        padding: 2.2rem;
-        border-radius: 20px;
-        margin-bottom: 1.2rem;
-        text-align: center;
-        color: white;
-        box-shadow: 0 10px 30px rgba(30, 58, 138, 0.28);
-    }
-    .emkan-logo { font-size: 2.6rem; font-weight: 800; margin-bottom: 0.25rem; }
-    .subtle { opacity: 0.85; }
+#MainMenu, footer, header { visibility: hidden; }
 
-    .card {
-        background: white;
-        padding: 1.6rem;
-        border-radius: 16px;
-        box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-        margin: 0.8rem 0;
-        direction: rtl;
-    }
-    .card-title { font-weight: 800; color: #0f172a; margin-bottom: 0.6rem; }
+.wrapper { display: flex; min-height: 100vh; }
 
-    .info {
-        background: #eff6ff;
-        border-right: 6px solid #1e3a8a;
-        border-radius: 14px;
-        padding: 1.2rem;
-        margin: 0.8rem 0;
-        direction: rtl;
-    }
+/* LEFT PANEL */
+.left-panel {
+  width: 38%;
+  background: linear-gradient(180deg, #3d3b6f, #34335f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.left-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.08), transparent 60%);
+}
+.phone {
+  width: 280px; height: 520px;
+  border-radius: 36px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
 
-    .loading {
-        background: #fef3c7;
-        border: 2px dashed #f59e0b;
-        border-radius: 14px;
-        padding: 1.2rem;
-        text-align: center;
-        margin: 0.8rem 0;
-        direction: rtl;
-    }
+/* RIGHT PANEL */
+.right-panel {
+  width: 62%;
+  background: white;
+  padding: 2.4rem 2.8rem;
+}
 
-    .result-pass {
-        background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-        padding: 2rem;
-        border-radius: 18px;
-        text-align: center;
-        color: white;
-        font-size: 1.4rem;
-        margin: 1rem 0;
-        box-shadow: 0 10px 26px rgba(16, 185, 129, 0.25);
-        direction: rtl;
-    }
-    .result-fraud {
-        background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
-        padding: 2rem;
-        border-radius: 18px;
-        text-align: center;
-        color: white;
-        font-size: 1.4rem;
-        margin: 1rem 0;
-        box-shadow: 0 10px 26px rgba(239, 68, 68, 0.25);
-        direction: rtl;
-    }
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-    .stButton > button {
-        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-        color: white;
-        font-size: 1.05rem;
-        padding: 0.8rem 1.4rem;
-        border-radius: 12px;
-        border: none;
-        box-shadow: 0 5px 14px rgba(30, 58, 138, 0.25);
-        transition: all 0.2s;
-    }
-    .stButton > button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 8px 18px rgba(30, 58, 138, 0.32);
-    }
+.logo img { height: 48px; }
 
-    /* Hide Streamlit chrome */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
+.hero-title {
+  font-size: 2rem;
+  font-weight: 900;
+  margin-top: 1.5rem;
+}
+.hero-sub {
+  opacity: 0.7;
+  margin-bottom: 1.8rem;
+}
+
+.card {
+  background: white;
+  border-radius: 18px;
+  padding: 1.6rem;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.06);
+  margin-top: 1rem;
+}
+
+.notice {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.success {
+  background: rgba(16,185,129,0.15);
+  border: 1px solid rgba(16,185,129,0.25);
+  padding: 1.2rem;
+  border-radius: 16px;
+  font-weight: 800;
+}
+.warning {
+  background: rgba(239,68,68,0.15);
+  border: 1px solid rgba(239,68,68,0.25);
+  padding: 1.2rem;
+  border-radius: 16px;
+  font-weight: 800;
+}
+
+.stButton > button {
+  background: #23c5a4;
+  color: white;
+  font-weight: 800;
+  border-radius: 14px;
+  padding: 0.8rem 1.4rem;
+  border: none;
+}
+.stButton > button:hover { transform: translateY(-1px); }
+
+.footer {
+  margin-top: 2rem;
+  font-size: 0.9rem;
+  opacity: 0.75;
+}
 </style>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
 # =============================================================================
-# LOAD MODEL + DATASET (USED ONLY FOR DEFAULTS)
+# LOAD FILES
 # =============================================================================
+MODEL_PATH = Path("Final_model.pkl")
+DATA_PATH = Path("loan_applications_fraud_4400.xlsx")
+LOGO_PATH = Path("emkan_logo.png")
 
-MODEL_CANDIDATES = [
-    Path("Final_model.pkl"),
-    Path("./Final_model.pkl"),
-    Path("./model/Final_model.pkl"),
-]
-
-DATA_CANDIDATES = [
-    Path("loan_applications_fraud_4400.xlsx"),
-    Path("./loan_applications_fraud_4400.xlsx"),
-    Path("./data/loan_applications_fraud_4400.xlsx"),
-    Path("loan_applications_fraud_4400.xlsx"),
-]
-
-@st.cache_resource
-def load_pipeline():
-    for p in MODEL_CANDIDATES:
-        if p.exists():
-            return joblib.load(p)
-    return None
-
-@st.cache_data
-def load_training_data():
-    for p in DATA_CANDIDATES:
-        if p.exists():
-            df = pd.read_excel(p)
-            return df
-    return None
-
-pipeline = load_pipeline()
-train_df = load_training_data()
+pipeline = joblib.load(MODEL_PATH)
+df = pd.read_excel(DATA_PATH)
 
 # =============================================================================
-# UTILITIES
+# HELPERS
 # =============================================================================
+def normalize_phone(p):
+    if p.startswith("05"):
+        return "+966" + p[1:]
+    return p
 
-def mask_value(v: str) -> str:
-    """Simple PII masking for demo display."""
-    if v is None:
-        return ""
-    s = str(v)
-    if len(s) <= 4:
-        return "*" * len(s)
-    return s[:2] + "*" * (len(s) - 4) + s[-2:]
-
-def normalize_sa_phone(phone: str) -> str:
-    if not phone:
-        return phone
-    s = re.sub(r"\s+", "", phone.strip())
-    if s.startswith("05"):
-        s = "+966" + s[1:]
-    return s
-
-def get_expected_raw_columns(pipe):
-    """Get raw input columns expected by a sklearn pipeline (best effort)."""
-    cols = getattr(pipe, "feature_names_in_", None)
-    if cols is not None:
-        return list(cols)
-
-    # try common preprocess step names
-    named_steps = getattr(pipe, "named_steps", {}) or {}
-    for step_name in ["preprocess", "preprocessor", "prep", "transformer"]:
-        step = named_steps.get(step_name)
-        if step is not None:
-            cols2 = getattr(step, "feature_names_in_", None)
-            if cols2 is not None:
-                return list(cols2)
-
-    return None
-
-def build_safe_defaults_from_dataset(df: pd.DataFrame, expected_cols: list) -> dict:
-    """Create safe defaults for each expected column based on training dataset distribution."""
-    defaults = {}
-    for c in expected_cols:
-        if c not in df.columns:
-            defaults[c] = np.nan
-            continue
-
-        series = df[c].dropna()
-        if series.empty:
-            defaults[c] = np.nan
-            continue
-
-        if np.issubdtype(series.dtype, np.number):
-            defaults[c] = float(series.median())
-        elif np.issubdtype(series.dtype, np.datetime64):
-            defaults[c] = pd.to_datetime(series).median()
-        else:
-            # mode for categorical/text
-            try:
-                defaults[c] = series.mode().iloc[0]
-            except Exception:
-                defaults[c] = series.iloc[0]
-    return defaults
-
-def generate_profiles():
-    """
-    Profiles that match your dataset columns (from the 4400 dataset):
-    - Account Opening Date
-    - Date of Last Password Change
-    - Date of Last Phone Number Change
-    - Login GPS Country / Latitude / Longitude
-    - Trusted Device Status
-    - Login IP Address
-    - Login Channel
-    """
-    now = datetime.now()
-
-    fraud_profile = {
-        "Account Opening Date": now - timedelta(days=25),
-        "Date of Last Password Change": now - timedelta(hours=2),
-        "Date of Last Phone Number Change": now - timedelta(days=1),
-        "Login GPS Country": "United Arab Emirates",
-        "Login GPS Latitude": 25.2048,
-        "Login GPS Longitude": 55.2708,
-        "Trusted Device Status": "No",
-        "Login IP Address": "154.23.45.67",
-        "Login Channel": "Web Browser",
-    }
-
-    pass_profile = {
-        "Account Opening Date": now - timedelta(days=1800),
-        "Date of Last Password Change": now - timedelta(days=120),
-        "Date of Last Phone Number Change": now - timedelta(days=365),
-        "Login GPS Country": "Saudi Arabia",
-        "Login GPS Latitude": 24.7136,
-        "Login GPS Longitude": 46.6753,
-        "Trusted Device Status": "Yes",
-        "Login IP Address": "212.51.143.22",
-        "Login Channel": "Mobile App",
-    }
-
-    return fraud_profile, pass_profile
-
-def build_input_df(pipe, df_train, full_row: dict) -> pd.DataFrame:
-    """
-    Build input row that matches expected columns exactly:
-    - Add missing columns with safe defaults
-    - Keep only expected columns
-    """
-    expected_cols = get_expected_raw_columns(pipe)
-    if expected_cols is None:
-        # Fallback: still try
-        return pd.DataFrame([full_row])
-
-    safe_defaults = build_safe_defaults_from_dataset(df_train, expected_cols) if df_train is not None else {}
-    row = {c: safe_defaults.get(c, np.nan) for c in expected_cols}
-
-    # fill only columns that exist in expected list
-    for k, v in full_row.items():
-        if k in row:
-            row[k] = v
-
-    input_df = pd.DataFrame([row])
-
-    # Ensure datetime parsing where possible
-    for c in input_df.columns:
-        if "Date" in c or "date" in c:
-            try:
-                input_df[c] = pd.to_datetime(input_df[c])
-            except Exception:
-                pass
-
-    return input_df
-
-def score(pipe, input_df: pd.DataFrame):
-    proba = pipe.predict_proba(input_df)[:, 1][0]
-    return float(proba), float(max(proba, 1 - proba))
+# deterministic demo control
+def is_fraud_by_salary(salary):
+    return salary % 2 != 0
 
 # =============================================================================
-# SESSION STATE (MULTI-PAGE FLOW)
+# SESSION STATE
 # =============================================================================
-if "step" not in st.session_state:
-    st.session_state.step = 1  # 1=form, 2=fetch, 3=decision, 4=processing, 5=thankyou
-
-if "customer" not in st.session_state:
-    st.session_state.customer = {}
-
+if "page" not in st.session_state:
+    st.session_state.page = 0
+if "app" not in st.session_state:
+    st.session_state.app = {}
 if "decision" not in st.session_state:
-    st.session_state.decision = None  # "PASS" or "FRAUD"
-
-if "risk" not in st.session_state:
-    st.session_state.risk = {}
+    st.session_state.decision = None
 
 # =============================================================================
-# HEADER
+# LAYOUT SHELL
 # =============================================================================
-st.markdown(
-    """
-<div class="emkan-header">
-    <div class="emkan-logo">💙 إمكان للتمويل</div>
-    <h2 style="margin:0.2rem 0;">رحلة طلب التمويل - Demo للمناقشة</h2>
-    <p class="subtle" style="margin:0.4rem 0;">(UI مبسطة + تجميع بيانات من الأنظمة + تحليل نموذج XGBoost الحقيقي)</p>
-</div>
-""",
-    unsafe_allow_html=True,
-)
+st.markdown('<div class="wrapper">', unsafe_allow_html=True)
+
+# LEFT
+st.markdown('<div class="left-panel"><div class="phone"></div></div>', unsafe_allow_html=True)
+
+# RIGHT
+st.markdown('<div class="right-panel">', unsafe_allow_html=True)
 
 # =============================================================================
-# VALIDATION: PIPELINE
+# PAGE 0 – LANDING
 # =============================================================================
-if pipeline is None:
-    st.error("⚠️ لم يتم العثور على ملف النموذج Final_model.pkl داخل المشروع.")
-    st.stop()
+if st.session_state.page == 0:
+    st.markdown('<div class="topbar">', unsafe_allow_html=True)
+    st.markdown(f'<div class="logo"><img src="data:image/png;base64,{LOGO_PATH.read_bytes().hex()}"></div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-if train_df is None:
-    st.warning("⚠️ لم يتم العثور على ملف الداتاست (loan_applications_fraud_4400.xlsx). سيتم تشغيل الديمو بدون Defaults ذكية (قد يؤثر على الاستقرار).")
+    st.markdown('<div class="hero-title">Apply for Finance with EMKAN</div>', unsafe_allow_html=True)
+    st.markdown('<div class="hero-sub">Fast, simple, and easy to use.</div>', unsafe_allow_html=True)
 
-# =============================================================================
-# STEP 1: FORM
-# =============================================================================
-if st.session_state.step == 1:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="card-title">📝 الصفحة الأولى: إدخال البيانات الأساسية</div>', unsafe_allow_html=True)
-    st.markdown("يرجى إدخال بيانات العميل الأساسية. (بقية البيانات سيتم جلبها من الأنظمة والجهات الحكومية)")
-
-    c1, c2 = st.columns(2)
-
-    with c1:
-        full_name = st.text_input("الاسم الكامل", placeholder="مثال: محمد أحمد العمري")
-        age = st.number_input("العمر", min_value=18, max_value=65, value=30)
-        employment_sector = st.selectbox("مكان العمل (القطاع)", ["قطاع خاص", "حكومي", "شبه حكومي"])
-        national_id = st.text_input("رقم الهوية", max_chars=10, placeholder="1XXXXXXXXX")
-
-    with c2:
-        phone = st.text_input("رقم الجوال", placeholder="+966 5XXXXXXXX")
-        email = st.text_input("البريد الإلكتروني", placeholder="example@email.com")
-        salary = st.number_input("الراتب الشهري (ريال)", min_value=0, max_value=1_000_000, value=15000, step=1)
-        requested_amount = st.number_input("مبلغ التمويل المطلوب (ريال)", min_value=2000, max_value=1_500_000, value=50000, step=1000)
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    btn_col1, btn_col2, btn_col3 = st.columns([1,2,1])
-    with btn_col2:
-        submit = st.button("📨 تقديم الطلب", use_container_width=True)
-
-    if submit:
-        if not full_name or not national_id or not phone or not email:
-            st.warning("⚠️ يرجى تعبئة: الاسم، الهوية، الجوال، الإيميل.")
-        else:
-            st.session_state.customer = {
-                "full_name": full_name.strip(),
-                "age": int(age),
-                "employment_sector": employment_sector,
-                "national_id": national_id.strip(),
-                "phone": normalize_sa_phone(phone),
-                "email": email.strip(),
-                "salary": int(salary),
-                "requested_amount": float(requested_amount),
-            }
-            st.session_state.step = 2
-            st.rerun()
+    st.button("Get Started", on_click=lambda: st.session_state.update(page=1))
 
 # =============================================================================
-# STEP 2: FETCH (CORE + GOVERNMENT SOURCES)
+# PAGE 1 – REGISTRATION
 # =============================================================================
-elif st.session_state.step == 2:
-    cust = st.session_state.customer
+elif st.session_state.page == 1:
+    st.markdown('<div class="hero-title">Registration</div>', unsafe_allow_html=True)
+    st.markdown('<div class="hero-sub">Your information</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="card-title">🔄 الصفحة الثانية: جلب البيانات من الأنظمة والجهات الحكومية</div>', unsafe_allow_html=True)
+    with st.form("form"):
+        c1, c2 = st.columns(2)
+        with c1:
+            name = st.text_input("Full name")
+            age = st.number_input("Age", 18, 65, 30)
+            sector = st.selectbox("Employment sector", ["Private", "Government", "Semi-government"])
+            nid = st.text_input("National ID / Iqama")
+        with c2:
+            phone = st.text_input("Mobile number")
+            email = st.text_input("Email")
+            salary = st.number_input("Basic salary (SAR)", 0, 1_000_000, 15000, 1)
+            amount = st.number_input("Requested amount (SAR)", 2000, 1_500_000, 50000, 1000)
 
-    st.markdown(
-        """
-<div class="loading">
-    <h4 style="margin:0.2rem 0;">⏳ جاري جلب البيانات…</h4>
-    <p style="margin:0.2rem 0;">Core Loan System + SIMAH + العنوان الوطني + تحقق الهوية</p>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
+        submitted = st.form_submit_button("Submit application")
 
-    progress = st.progress(0)
-    steps = [
-        "الاتصال بالنظام الرئيسي (Core Loan System)",
-        "جلب بيانات سمه (SIMAH) - الحالة الائتمانية",
-        "جلب العنوان الوطني (Saudi Post)",
-        "تجميع سجل الجهاز/IP والموقع",
-        "تجهيز ملف الإدخال للنموذج",
-    ]
-
-    status_box = st.empty()
-    for i, s in enumerate(steps, start=1):
-        status_box.info(f"🔹 {s}")
-        time.sleep(0.6)
-        progress.progress(int(i / len(steps) * 100))
-
-    # Determine demo scenario using salary odd/even
-    # Odd salary => fraud scenario (for demo control)
-    is_fraud_demo = (cust["salary"] % 2 != 0)
-
-    fraud_profile, pass_profile = generate_profiles()
-    profile = fraud_profile if is_fraud_demo else pass_profile
-
-    # "Government / Core" fetched info (UI only)
-    fetched = {
-        "SIMAH Credit Status": "High Risk" if is_fraud_demo else "Good Standing",
-        "National Address": "خارج الرياض - عنوان غير متطابق" if is_fraud_demo else "الرياض - العنوان الوطني مطابق",
-        "KYC Verification": "Needs Review" if is_fraud_demo else "Verified",
-        "Employer Sector": cust["employment_sector"],
-        **profile,
-    }
-
-    # Build a model row based on your dataset columns
-    full_row = {
-        # Columns from dataset (best-effort)
-        "ApplicationID": f"APP-{datetime.now().strftime('%Y%m%d%H%M%S')}",
-        "Names ClientName": cust["full_name"],
-        "Phone Number": cust["phone"],
-        "Email": cust["email"],
-        "Total Amounts": cust["requested_amount"],   # model uses requested amount (not offer)
-        "Product Type": "Personal Loan",
-        "Incident Start Date": datetime.now(),
-        "Complaint Date": datetime.now(),
-        "E-Services Login Session ID": f"SID-{np.random.randint(100000, 999999)}",
-        # Risk features from profile (only if expected by pipeline)
-        **profile,
-        "Login Channel": profile.get("Login Channel", "Mobile App"),
-    }
-
-    # Build input_df aligned to expected columns
-    input_df = build_input_df(pipeline, train_df, full_row)
-    proba, conf = score(pipeline, input_df)
-
-    decision = "FRAUD" if proba > 0.5 else "PASS"
-
-    # For DEMO stability: if pipeline result contradicts demo parity, we still follow the model result,
-    # but we keep the parity as "demo scenario hint" in hidden expander.
-    st.session_state.risk = {
-        "demo_is_fraud_by_salary_parity": is_fraud_demo,
-        "model_proba": proba,
-        "model_confidence": conf,
-        "fetched": fetched,
-        "full_row_sent_to_model": full_row,
-        "expected_cols_count": len(get_expected_raw_columns(pipeline) or []),
-    }
-    st.session_state.decision = decision
-
-    st.success("✅ اكتمل جلب البيانات وتجهيز الطلب")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # Auto-advance to step 3
-    time.sleep(0.3)
-    st.session_state.step = 3
-    st.rerun()
+    if submitted:
+        st.session_state.app = {
+            "name": name,
+            "salary": salary,
+            "requested": amount
+        }
+        st.session_state.page = 2
+        st.rerun()
 
 # =============================================================================
-# STEP 3: DECISION PAGE (OFFER or REFER)
+# PAGE 2 – FETCHING DATA
 # =============================================================================
-elif st.session_state.step == 3:
-    cust = st.session_state.customer
-    risk = st.session_state.risk
-    decision = st.session_state.decision
-
-    # Show fetched info summary
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="card-title">📌 ملخص البيانات المُسترجعة</div>', unsafe_allow_html=True)
-
-    f = risk.get("fetched", {})
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown(f"<div class='info'><b>سمه (SIMAH):</b> {f.get('SIMAH Credit Status','-')}<br><b>تحقق الهوية/KYC:</b> {f.get('KYC Verification','-')}</div>", unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"<div class='info'><b>العنوان الوطني:</b> {f.get('National Address','-')}<br><b>قطاع العمل:</b> {f.get('Employer Sector','-')}</div>", unsafe_allow_html=True)
-
-    # Metrics
-    st.markdown("### 🤖 نتيجة التقييم بالذكاء الاصطناعي")
-    m1, m2, m3 = st.columns(3)
-    with m1:
-        st.metric("Risk Score", f"{risk['model_proba']*100:.1f}%")
-    with m2:
-        st.metric("Confidence", f"{risk['model_confidence']*100:.1f}%")
-    with m3:
-        st.metric("Requested Amount", f"{cust['requested_amount']:,.0f} ريال")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # Branch
-    if decision == "PASS":
-        # Offer = 3x salary (per your demo requirement)
-        offer_amount = float(cust["salary"] * 3)
-
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown('<div class="card-title">💼 الصفحة الثالثة: عرض التمويل (Offer)</div>', unsafe_allow_html=True)
-
-        st.markdown(
-            f"""
-<div class="result-pass">
-    <h3 style="margin:0.2rem 0;">✅ تمت مراجعة الطلب مبدئياً</h3>
-    <p style="margin:0.2rem 0;">العرض المتاح حسب سياسات الشركة: <b>{offer_amount:,.0f} ريال</b> (ثلاثة أضعاف الراتب الأساسي)</p>
-</div>
-""",
-            unsafe_allow_html=True,
-        )
-
-        st.markdown(
-            """
-<div class="info">
-<b>ملاحظة:</b> هذا العرض يتم توليده آلياً لأغراض الديمو. في الواقع قد تخضع القيمة لسياسات ائتمانية إضافية.
-</div>
-""",
-            unsafe_allow_html=True,
-        )
-
-        a1, a2, a3 = st.columns([1,2,1])
-        with a2:
-            approve = st.button("✅ أوافق على العرض", use_container_width=True)
-            reject = st.button("❌ أرفض العرض", use_container_width=True)
-
-        if approve:
-            st.session_state.step = 4
-            st.rerun()
-
-        if reject:
-            st.session_state.step = 5
-            st.session_state.thankyou_msg = "نشكر لك تواصلك مع شركة إمكان للتمويل"
-            st.rerun()
-
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    else:
-        # FRAUD: refer to sales / verification
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown('<div class="card-title">⚠️ الصفحة الثالثة: إجراء إضافي لاستكمال الطلب</div>', unsafe_allow_html=True)
-
-        st.markdown(
-            """
-<div class="result-fraud">
-    <h3 style="margin:0.2rem 0;">⚠️ سيتم تحويل الطلب للتواصل</h3>
-    <p style="margin:0.2rem 0;">سيتم تحويل طلبكم لفريق المبيعات/التحقق للتواصل معكم وطلب معلومات إضافية لاستكمال الطلب.</p>
-</div>
-""",
-            unsafe_allow_html=True,
-        )
-
-        st.markdown(
-            """
-<div class="info">
-<b>السبب (للعرض فقط):</b> تم رصد مؤشرات تتطلب خطوة تحقق إضافية قبل استكمال الموافقة.
-</div>
-""",
-            unsafe_allow_html=True,
-        )
-
-        end1, end2, end3 = st.columns([1,2,1])
-        with end2:
-            st.button("✅ فهمت، بانتظار تواصل الفريق", use_container_width=True)
-
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    # Hidden demo / diagnostics
-    with st.expander("ℹ️ (للمقدم فقط) تفاصيل الديمو والتشخيص"):
-        st.write("التحكم بالديمو (الراتب فردي => سيناريو احتيال) =", risk.get("demo_is_fraud_by_salary_parity"))
-        st.write("عدد الأعمدة المتوقعة من الـPipeline =", risk.get("expected_cols_count"))
-        st.write("البيانات المرسلة للموديل (بدون إخفاء):")
-        st.json(risk.get("full_row_sent_to_model", {}))
-
-# =============================================================================
-# STEP 4: PROCESSING (APPROVED PATH)
-# =============================================================================
-elif st.session_state.step == 4:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="card-title">⏳ الصفحة الرابعة: جاري العمل على طلبك</div>', unsafe_allow_html=True)
-
-    st.markdown(
-        """
-<div class="loading">
-    <h4 style="margin:0.2rem 0;">⏳ جاري العمل على طلبكم…</h4>
-    <p style="margin:0.2rem 0;">سيتم التواصل معكم خلال 24 ساعة</p>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
+elif st.session_state.page == 2:
+    st.markdown('<div class="hero-title">Fetching your data</div>', unsafe_allow_html=True)
+    st.markdown('<div class="notice">Connecting to Core Systems, SIMAH, National Address…</div>', unsafe_allow_html=True)
 
     p = st.progress(0)
     for i in range(100):
         time.sleep(0.02)
-        p.progress(i + 1)
+        p.progress(i+1)
 
-    st.success("✅ تم استلام الطلب بنجاح")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    c1, c2, c3 = st.columns([1,2,1])
-    with c2:
-        back = st.button("🏠 العودة للصفحة الرئيسية", use_container_width=True)
-        if back:
-            st.session_state.step = 1
-            st.session_state.customer = {}
-            st.session_state.decision = None
-            st.session_state.risk = {}
-            st.rerun()
+    salary = st.session_state.app["salary"]
+    st.session_state.decision = "FRAUD" if is_fraud_by_salary(salary) else "PASS"
+    st.session_state.page = 3
+    st.rerun()
 
 # =============================================================================
-# STEP 5: THANK YOU (REJECT PATH)
+# PAGE 3 – DECISION
 # =============================================================================
-elif st.session_state.step == 5:
-    msg = st.session_state.get("thankyou_msg", "نشكر لك تواصلك مع شركة إمكان للتمويل")
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="card-title">🙏</div>', unsafe_allow_html=True)
+elif st.session_state.page == 3:
+    decision = st.session_state.decision
+    salary = st.session_state.app["salary"]
 
-    st.markdown(
-        f"""
-<div class="info">
-<h4 style="margin:0.2rem 0;">{msg}</h4>
-<p style="margin:0.2rem 0;">نتطلع لخدمتكم دائماً.</p>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    c1, c2, c3 = st.columns([1,2,1])
-    with c2:
-        back = st.button("🏠 بدء طلب جديد", use_container_width=True)
-        if back:
-            st.session_state.step = 1
-            st.session_state.customer = {}
-            st.session_state.decision = None
-            st.session_state.risk = {}
+    if decision == "PASS":
+        offer = salary * 3
+        st.markdown('<div class="success">✅ Pre-approved</div>', unsafe_allow_html=True)
+        st.markdown(f"<p>Offer amount: <b>{offer:,} SAR</b></p>", unsafe_allow_html=True)
+        if st.button("Approve offer"):
+            st.session_state.page = 4
             st.rerun()
+        if st.button("Reject offer"):
+            st.session_state.page = 5
+            st.rerun()
+    else:
+        st.markdown('<div class="warning">⚠️ Application referred to verification team</div>', unsafe_allow_html=True)
+        st.button("OK", on_click=lambda: st.session_state.update(page=4))
+
+# =============================================================================
+# PAGE 4 – FINAL
+# =============================================================================
+elif st.session_state.page == 4:
+    st.markdown('<div class="hero-title">Processing</div>', unsafe_allow_html=True)
+    st.markdown("<p>We will contact you within 24 hours.</p>", unsafe_allow_html=True)
+    st.button("Start new application", on_click=lambda: st.session_state.update(page=0))
+
+# =============================================================================
+# PAGE 5 – THANK YOU
+# =============================================================================
+elif st.session_state.page == 5:
+    st.markdown('<div class="hero-title">Thank you</div>', unsafe_allow_html=True)
+    st.markdown("<p>Thank you for contacting EMKAN Finance.</p>", unsafe_allow_html=True)
+    st.button("Start new application", on_click=lambda: st.session_state.update(page=0))
 
 # =============================================================================
 # FOOTER
 # =============================================================================
-st.markdown(
-    """
-<div style="text-align:center; color:#64748b; padding: 1.4rem;">
-  <p style="font-size:1.1rem; color:#1e3a8a; font-weight:800; margin:0;">💙 إمكان للتمويل</p>
-  <p style="margin:0.2rem 0;">شركة تمويل سعودية مرخصة | مملوكة بالكامل لبنك الراجحي</p>
-  <p style="font-size:0.85rem; margin:0.2rem 0;">🎓 مشروع بحث الماجستير | Midocean University | 2025</p>
+st.markdown("""
+<div class="footer">
+<hr>
+<b>Researchers:</b> ELSEDEEG MOAHMEDELBASHER ABDALLA AHMED & MOHAMED ABDELSATART<br>
+<b>Supervisor:</b> Dr. Khaled Iskaf<br>
+Master’s Thesis – Midocean University – 2025
 </div>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
+
+st.markdown('</div></div>', unsafe_allow_html=True)
