@@ -1,5 +1,5 @@
 # =============================================================================
-# EMKAN FINANCE – Loan Application Demo (Full Blue Page + Slow Data Retrieval)
+# EMKAN FINANCE – Loan Application Demo (Light / Bright UI)
 #
 # Researchers:
 #  - ELSEDEEG MOAHMEDELBASHER ABDALLA AHMED
@@ -43,14 +43,9 @@ def parity_decision(salary: int) -> str:
     return "FRAUD" if (salary % 2 != 0) else "PASS"
 
 # -----------------------------------------------------------------------------
-# SESSION STATE
-# 0 Landing
-# 1 Registration
-# 2 Fetching (slow)
-# 3 Decision
-# 4 Processing
-# 5 Thank you
+# STATE
 # -----------------------------------------------------------------------------
+# 0 Landing | 1 Registration | 2 Fetching | 3 Decision | 4 Processing | 5 Thank you
 if "page" not in st.session_state:
     st.session_state.page = 0
 if "app" not in st.session_state:
@@ -65,7 +60,7 @@ if "dataset_sample" not in st.session_state:
     st.session_state.dataset_sample = {}
 
 # -----------------------------------------------------------------------------
-# CSS (FULL BLUE BACKGROUND + CENTERED CARD)
+# CSS (LIGHT + BRIGHT + SMALL NAVY ACCENTS)
 # -----------------------------------------------------------------------------
 st.markdown(
     """
@@ -73,93 +68,132 @@ st.markdown(
 #MainMenu, footer, header { visibility: hidden; }
 [data-testid="stHeader"] { background: transparent !important; }
 
+/* Page background (light, bright) */
 html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"]{
-  background: linear-gradient(180deg,#2F2D5F 0%, #27255A 55%, #23214F 100%) !important;
-  color: #EAF0FF !important;
+  background: #F6F8FC !important;
 }
 
+/* Wider but centered */
 .block-container{
-  max-width: 1280px !important;
+  max-width: 1180px !important;
   padding-top: 1.2rem !important;
-  padding-bottom: 2.2rem !important;
+  padding-bottom: 2rem !important;
 }
 
+/* Palette */
 :root{
-  --emkan-navy:#2F2D5F;
-  --emkan-teal:#23C5A4;
+  --navy:#2F2D5F;      /* Emkan deep tone - use lightly */
+  --teal:#23C5A4;      /* CTA */
+  --teal2:#7BE3D2;     /* highlight */
   --card:#FFFFFF;
-  --border:#E5EDF7;
+  --border:#E6EEF7;
   --text:#0F172A;
-  --muted:rgba(15,23,42,0.65);
+  --muted:rgba(15,23,42,0.62);
+  --soft:#F1F6FF;
 }
 
-/* Main white card (like the website content area) */
+/* Main card */
 .shell{
   background: var(--card);
   border-radius: 22px;
-  border: 1px solid rgba(229,237,247,0.7);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
-  padding: 22px;
+  border: 1px solid var(--border);
+  box-shadow: 0 18px 46px rgba(15,23,42,0.08);
+  overflow: hidden;
 }
 
-/* Inside layout */
+/* Two columns: left slim brand panel + right content */
 .inner{
   display:grid;
-  grid-template-columns: 420px 1fr;
-  gap: 22px;
-  align-items: start;
+  grid-template-columns: 340px 1fr;
+  min-height: 720px;
 }
 @media (max-width: 980px){
   .inner{ grid-template-columns: 1fr; }
-  .leftHero{ display:none; }
+  .leftBrand{ display:none; }
 }
 
-.leftHero{
-  border-radius: 18px;
+/* Left brand panel: light gradient, NOT dark */
+.leftBrand{
   background:
-    radial-gradient(circle at 30% 20%, rgba(255,255,255,0.14), rgba(255,255,255,0) 62%),
-    linear-gradient(180deg, #3D3B6F 0%, #2F2D5F 100%);
-  padding: 18px;
-  min-height: 640px;
+    radial-gradient(circle at 30% 25%, rgba(35,197,164,0.28), rgba(35,197,164,0) 60%),
+    linear-gradient(180deg, #F7FAFF 0%, #EEF4FF 55%, #F7FAFF 100%);
+  border-right: 1px solid var(--border);
+  padding: 20px;
+}
+.lbTitle{
+  color: var(--navy);
+  font-weight: 950;
+  font-size: 1.05rem;
+  letter-spacing: 0.2px;
+}
+.lbSub{
+  margin-top: 6px;
+  color: rgba(47,45,95,0.70);
+  font-weight: 800;
+  font-size: 0.93rem;
+}
+.heroMock{
+  margin-top: 18px;
+  width: 100%;
+  height: 540px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(47,45,95,0.10), rgba(47,45,95,0.04));
+  border: 1px solid rgba(47,45,95,0.10);
+  position: relative;
   overflow:hidden;
 }
-.heroTitle{ color: rgba(255,255,255,0.92); font-weight: 950; font-size: 1.05rem; }
-.heroSub{ color: rgba(255,255,255,0.78); font-weight: 800; margin-top: 8px; font-size: 0.95rem; }
-.heroPhone{
-  width: 270px; height: 520px;
-  border-radius: 40px;
-  margin-top: 18px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.14);
-  box-shadow: 0 18px 60px rgba(0,0,0,0.25);
+.heroMock:before{
+  content:"";
+  position:absolute;
+  left: -40px; top: -40px;
+  width: 220px; height: 220px;
+  background: radial-gradient(circle, rgba(35,197,164,0.35), rgba(35,197,164,0));
+}
+.heroMock:after{
+  content:"";
+  position:absolute;
+  right: -60px; bottom: -60px;
+  width: 260px; height: 260px;
+  background: radial-gradient(circle, rgba(47,45,95,0.16), rgba(47,45,95,0));
 }
 
-/* Top bar inside card */
+/* Right content area */
+.right{
+  padding: 18px 22px 20px 22px;
+}
+
+/* Top bar inside */
 .topbar{
   display:flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  gap: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 14px;
 }
 .actions{
-  display:flex; align-items:center; gap:14px;
-  font-weight: 850; color: rgba(15,23,42,0.55);
+  display:flex; align-items:center; gap:12px;
+  color: rgba(15,23,42,0.55);
+  font-weight: 800;
+  flex-wrap: wrap;
 }
 .pill{
   padding: 10px 14px;
   border-radius: 12px;
-  background: rgba(35,197,164,0.14);
-  border: 1px solid rgba(35,197,164,0.28);
-  color: #167A67;
+  background: rgba(35,197,164,0.16);
+  border: 1px solid rgba(35,197,164,0.35);
+  color: #136A5B;
   font-weight: 950;
 }
 
-/* Typography */
-.h1{ font-size: 2.1rem; font-weight: 950; margin: 8px 0 4px 0; color: var(--text); }
+/* Titles */
+.h1{ font-size: 2.1rem; font-weight: 950; margin: 12px 0 6px 0; color: var(--text); }
 .h2{ font-size: 1.02rem; font-weight: 850; color: rgba(15,23,42,0.62); margin: 0 0 14px 0; }
 
+/* Info note */
 .note{
-  background: #F1F6FF;
+  background: var(--soft);
   border: 1px solid #DCE7F7;
   padding: 12px 14px;
   border-radius: 14px;
@@ -167,6 +201,7 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"]{
   margin-bottom: 14px;
 }
 
+/* Sections */
 .section{
   background:#FFFFFF;
   border:1px solid var(--border);
@@ -174,7 +209,7 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"]{
   padding:16px;
 }
 
-/* Force widgets light */
+/* Widget theme */
 [data-baseweb="input"] input,
 textarea{
   background:#FFFFFF !important;
@@ -192,20 +227,20 @@ textarea{
 }
 [data-baseweb="input"] > div:focus-within,
 [data-baseweb="select"] > div:focus-within{
-  border: 1px solid rgba(35,197,164,0.75) !important;
-  box-shadow: 0 0 0 4px rgba(35,197,164,0.12) !important;
+  border: 1px solid rgba(35,197,164,0.85) !important;
+  box-shadow: 0 0 0 4px rgba(35,197,164,0.14) !important;
 }
 label{ color: rgba(15,23,42,0.72) !important; font-weight: 850 !important; }
 
 /* Buttons */
 .stButton > button{
-  background: var(--emkan-teal) !important;
+  background: var(--teal) !important;
   color: white !important;
   font-weight: 950 !important;
   border: none !important;
-  padding: 0.85rem 1.2rem !important;
+  padding: 0.85rem 1.1rem !important;
   border-radius: 14px !important;
-  box-shadow: 0 10px 22px rgba(35,197,164,0.22) !important;
+  box-shadow: 0 10px 22px rgba(35,197,164,0.20) !important;
 }
 .secondary .stButton > button{
   background: #FFFFFF !important;
@@ -216,7 +251,7 @@ label{ color: rgba(15,23,42,0.72) !important; font-weight: 850 !important; }
 
 /* Footer */
 .footer{
-  margin-top: 14px;
+  margin-top: 16px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
   color: rgba(15,23,42,0.70);
@@ -232,63 +267,47 @@ label{ color: rgba(15,23,42,0.72) !important; font-weight: 850 !important; }
 # -----------------------------------------------------------------------------
 def mask_value(key: str, value):
     s = "" if value is None else str(value)
-
     k = key.lower()
+
     if "email" in k:
         if "@" in s:
             u, d = s.split("@", 1)
             u2 = (u[:2] + "***") if len(u) >= 2 else "***"
             return f"{u2}@{d}"
         return "***@***"
+
     if "phone" in k or "mobile" in k:
         digits = re.sub(r"\D", "", s)
-        if len(digits) >= 4:
-            return f"+966 *** *** {digits[-4:]}"
-        return "+966 ***"
+        return f"+966 *** *** {digits[-4:]}" if len(digits) >= 4 else "+966 ***"
+
     if "id" in k or "iqama" in k or "national" in k:
         digits = re.sub(r"\D", "", s)
         if len(digits) >= 4:
             return f"{digits[:2]}******{digits[-2:]}"
         return "**********"
+
     if "name" in k:
         parts = s.split()
         if len(parts) >= 2:
             return f"{parts[0]} {parts[1][0]}***"
         return s[:2] + "***" if len(s) >= 2 else "***"
+
     return s if len(s) <= 18 else s[:18] + "..."
 
 def load_dataset_columns_and_sample():
-    """
-    Loads dataset to show "retrieving all customer fields".
-    Falls back gracefully if openpyxl missing.
-    """
     if not DATA_PATH.exists():
         return [], {}
-
     try:
         df = pd.read_excel(DATA_PATH, engine="openpyxl")
         cols = list(df.columns)
         sample_row = df.iloc[0].to_dict() if len(df) else {}
         return cols, sample_row
     except Exception:
-        # If openpyxl missing or file read fails, show only columns via fallback message
         return [], {}
-
-def footer_block():
-    st.markdown(
-        """
-<div class="footer">
-  <div><b>Researchers:</b> ELSEDEEG MOAHMEDELBASHER ABDALLA AHMED &amp; MOHAMED ABDELSATART</div>
-  <div><b>Supervisor:</b> Dr. Khaled Eskaf</div>
-  <div style="margin-top:6px;">Master's Thesis Project | Midocean University | 2025</div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
 
 def topbar_block():
     logo_html = (
-        f'<img src="data:image/png;base64,{LOGO_B64}" style="height:54px;" />'
+        f'<img src="data:image/png;base64,{LOGO_B64}" style="height:52px;" />'
         if LOGO_B64
         else '<div style="font-weight:950; font-size:1.5rem; color:#2F2D5F;">EMKAN</div>'
     )
@@ -306,25 +325,37 @@ def topbar_block():
         unsafe_allow_html=True,
     )
 
+def footer_block():
+    st.markdown(
+        """
+<div class="footer">
+  <div><b>Researchers:</b> ELSEDEEG MOAHMEDELBASHER ABDALLA AHMED &amp; MOHAMED ABDELSATART</div>
+  <div><b>Supervisor:</b> Dr. Khaled Eskaf</div>
+  <div style="margin-top:6px;">Master's Thesis Project | Midocean University | 2025</div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
 # -----------------------------------------------------------------------------
-# MAIN SHELL
+# LAYOUT SHELL
 # -----------------------------------------------------------------------------
 st.markdown('<div class="shell"><div class="inner">', unsafe_allow_html=True)
 
-# Left hero
+# Left panel
 st.markdown(
     """
-<div class="leftHero">
-  <div class="heroTitle">EMKAN Finance Demo</div>
-  <div class="heroSub">AI-assisted Loan Screening</div>
-  <div class="heroPhone"></div>
+<div class="leftBrand">
+  <div class="lbTitle">EMKAN Finance Demo</div>
+  <div class="lbSub">AI-assisted Loan Screening</div>
+  <div class="heroMock"></div>
 </div>
 """,
     unsafe_allow_html=True,
 )
 
-# Right content container start
-st.markdown("<div>", unsafe_allow_html=True)
+# Right panel start
+st.markdown('<div class="right">', unsafe_allow_html=True)
 
 topbar_block()
 
@@ -339,14 +370,14 @@ if st.session_state.page == 0:
     st.markdown(
         """
 <div class="note">
-This demo simulates the real journey:
-Application → Data retrieval (Core + SIMAH + National Address) → Decision.
+This demo simulates the real customer journey:
+<b>Application</b> → <b>Data retrieval</b> (Core + SIMAH + National Address) → <b>Decision</b>.
 </div>
 """,
         unsafe_allow_html=True,
     )
 
-    c1, c2, c3 = st.columns([1, 2, 1])
+    c1, c2, c3 = st.columns([1, 1.2, 1])
     with c2:
         if st.button("Get Started", use_container_width=True):
             st.session_state.page = 1
@@ -402,7 +433,7 @@ Customer enters only basic information. Remaining information is retrieved autom
             st.session_state.page = 2
             st.rerun()
 
-    bc1, bc2 = st.columns([0.4, 0.6])
+    bc1, bc2 = st.columns([0.35, 0.65])
     with bc1:
         st.markdown('<div class="secondary">', unsafe_allow_html=True)
         if st.button("Back", use_container_width=True):
@@ -417,71 +448,76 @@ elif st.session_state.page == 2:
     st.markdown('<div class="h2">Core Systems + SIMAH + National Address…</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="section">', unsafe_allow_html=True)
-    st.markdown(
-        """
-<div class="note">
-In this step, the system retrieves <b>all required customer fields</b> from the Core Loan System and government sources,
-matching the training dataset structure.
-</div>
-""",
-        unsafe_allow_html=True,
-    )
 
-    # Load dataset columns once
+    # Load dataset cols once
     if not st.session_state.dataset_cols:
         cols, sample = load_dataset_columns_and_sample()
         st.session_state.dataset_cols = cols
         st.session_state.dataset_sample = sample
 
-    # If dataset couldn't be loaded, show a clear message (still continue demo)
     if not st.session_state.dataset_cols:
         st.warning(
-            "Dataset columns could not be loaded (likely missing openpyxl). "
-            "Add openpyxl to requirements.txt, then redeploy."
+            "Dataset columns could not be loaded. "
+            "Make sure `openpyxl` is added to requirements.txt, then redeploy."
         )
+
+    st.markdown(
+        """
+<div class="note">
+Retrieving customer profile and required fields aligned with the training dataset schema.
+</div>
+""",
+        unsafe_allow_html=True,
+    )
 
     steps = [
         "Connecting to Core Loan System",
         "Retrieving SIMAH credit status",
         "Retrieving National Address",
         "Collecting device / IP / geo signals",
-        "Loading all customer fields from dataset schema",
+        "Loading full dataset schema fields",
         "Preparing automated decision",
     ]
 
     p = st.progress(0)
     msg = st.empty()
 
+    # slower steps for committee
     for i, s in enumerate(steps, start=1):
         msg.info(s)
-        time.sleep(1.0)  # slower for committee understanding
-        p.progress(int(i / len(steps) * 100))
+        time.sleep(1.2)
+        p.progress(int(i / len(steps) * 55))
 
     st.markdown("### Retrieved fields (demo)")
     holder = st.container()
-    shown = 0
 
     cols_list = st.session_state.dataset_cols[:]
     sample = st.session_state.dataset_sample or {}
 
-    # Slow reveal of columns
     if cols_list:
-        for col_name in cols_list:
-            shown += 1
+        # show first N gradually (still represent "all fields")
+        # then show "and X more…" to keep UI clean
+        MAX_SHOW = 55
+        shown_cols = cols_list[:MAX_SHOW]
+        remaining = max(0, len(cols_list) - MAX_SHOW)
+
+        for idx, col_name in enumerate(shown_cols, start=1):
+            v = sample.get(col_name, "")
+            mv = mask_value(col_name, v)
             with holder:
-                # show masked sample value if exists
-                v = sample.get(col_name, "")
-                mv = mask_value(col_name, v)
                 st.write(f"✅ **{col_name}**  —  `{mv}`")
-            time.sleep(0.12)  # slow reveal of each field
+            # slow reveal
+            time.sleep(0.10)
+            # progress continues smoothly
+            p.progress(min(95, 55 + int((idx / max(1, len(shown_cols))) * 40)))
 
-            # keep progress moving during reveal
-            if shown % 10 == 0:
-                p.progress(min(100, 60 + int((shown / max(1, len(cols_list))) * 40)))
+        if remaining > 0:
+            st.info(f"…and **{remaining}** additional fields retrieved from the Core Loan System and government sources.")
 
-    st.success("Data retrieval completed (Core + Government sources + Full dataset schema).")
+    p.progress(100)
+    st.success("Data retrieval completed successfully.")
 
-    # 결정 (100% deterministic)
+    # 100% deterministic decision
     salary = int(st.session_state.app["salary"])
     st.session_state.decision = parity_decision(salary)
     st.session_state.offer = float(salary * 3)
@@ -508,7 +544,7 @@ elif st.session_state.page == 3:
             f"""
 <div class="note">
 <b>Offer amount:</b> {offer:,.0f} SAR<br>
-<span style="opacity:0.75;">(Policy: 3 × basic salary)</span>
+<span style="opacity:0.75;">Policy: 3 × basic salary</span>
 </div>
 """,
             unsafe_allow_html=True,
@@ -548,7 +584,6 @@ elif st.session_state.page == 4:
     st.markdown('<div class="h2">We are working on your application.</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="section">', unsafe_allow_html=True)
-
     st.markdown(
         """
 <div class="note">
@@ -560,7 +595,7 @@ Your request is being processed. We will contact you within <b>24 hours</b>.
 
     p = st.progress(0)
     for i in range(100):
-        time.sleep(0.02)  # slower
+        time.sleep(0.02)
         p.progress(i + 1)
 
     st.success("Application received successfully.")
@@ -580,7 +615,6 @@ elif st.session_state.page == 5:
     st.markdown('<div class="h2">Thank you for contacting EMKAN Finance.</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="section">', unsafe_allow_html=True)
-
     st.markdown(
         """
 <div class="note">
@@ -603,5 +637,5 @@ We appreciate your time. You can apply again at any time.
 
 footer_block()
 
-# right end + inner + shell end
+# Close right + inner + shell
 st.markdown("</div></div></div>", unsafe_allow_html=True)
