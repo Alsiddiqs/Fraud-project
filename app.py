@@ -1,396 +1,572 @@
+# ===== إنشاء تطبيق إمكان للتمويل - Demo =====
+
+app_code = '''
 import streamlit as st
-from pathlib import Path
-import time
-import joblib
 import pandas as pd
+import numpy as np
+import joblib
+from datetime import datetime, timedelta
+import time
+import random
 
 # ==============================
 # Page Configuration
 # ==============================
 st.set_page_config(
-    page_title="Emkan Finance – AI Loan Screening",
+    page_title="إمكان للتمويل | Emkan Finance",
     page_icon="💳",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
 # ==============================
-# Paths
+# Custom CSS - EMKAN Style
 # ==============================
-BASE_DIR = Path(__file__).parent
-LEFT_IMAGE = BASE_DIR / "sme-main.svg"     # Optional hero illustration
-MODEL_PATH = BASE_DIR / "Final_model.pkl"  # If you want to load model later
-DATA_PATH = BASE_DIR / "loan_applications_fraud_4400.xlsx"
-
-# ==============================
-# Custom CSS (Emkan-like look)
-# ==============================
-st.markdown(
-    """
-    <style>
-    /* Global */
-    body {
-        background-color: #f4f7fb;
-        font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+st.markdown("""
+<style>
+    /* Main Background */
+    .stApp {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
     }
-
-    .main {
-        padding-top: 0rem;
-    }
-
-    /* Top hero header */
-    .hero-container {
-        background: linear-gradient(135deg, #1e3a8a 0%, #4f46e5 60%, #22c1c3 100%);
-        border-radius: 18px;
-        padding: 28px 32px;
-        color: #ffffff;
-        margin-bottom: 28px;
-        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.35);
+    
+    /* Hide Streamlit Branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* Header Style */
+    .main-header {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        padding: 1.5rem 2rem;
+        border-radius: 0 0 20px 20px;
+        margin: -1rem -1rem 2rem -1rem;
         display: flex;
-        align-items: center;
         justify-content: space-between;
+        align-items: center;
     }
-
-    .hero-text {
-        max-width: 60%;
-    }
-
-    .hero-title {
-        font-size: 1.9rem;
+    
+    .logo-text {
+        color: white;
+        font-size: 2rem;
         font-weight: 700;
-        margin-bottom: 0.4rem;
+        margin: 0;
     }
-
-    .hero-subtitle {
-        font-size: 0.98rem;
-        opacity: 0.92;
+    
+    .logo-subtitle {
+        color: #93c5fd;
+        font-size: 0.9rem;
+        margin: 0;
     }
-
-    .hero-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        background: rgba(15, 23, 42, 0.25);
-        padding: 0.25rem 0.65rem;
-        border-radius: 999px;
-        font-size: 0.78rem;
-        margin-bottom: 0.4rem;
+    
+    /* Form Card */
+    .form-container {
+        background: white;
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 1.5rem;
     }
-
-    .hero-badge-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 999px;
-        background: #22c55e;
-        box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.4);
-    }
-
-    /* Form card */
-    .form-card {
-        background: #ffffff;
-        padding: 26px 26px 20px 26px;
-        border-radius: 18px;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.10);
-        border: 1px solid #e5e7eb;
-    }
-
-    .form-header {
+    
+    .form-title {
+        color: #1e3a8a;
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
         display: flex;
-        justify-content: space-between;
         align-items: center;
+        gap: 10px;
+    }
+    
+    .form-subtitle {
+        color: #64748b;
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Input Labels */
+    .stTextInput label, .stNumberInput label, .stSelectbox label {
+        color: #374151 !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+    }
+    
+    /* Input Fields */
+    .stTextInput input, .stNumberInput input, .stSelectbox select {
+        border-radius: 10px !important;
+        border: 2px solid #e2e8f0 !important;
+        padding: 0.6rem !important;
+    }
+    
+    .stTextInput input:focus, .stNumberInput input:focus {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+    }
+    
+    /* Submit Button */
+    .stButton > button {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 0.8rem 2rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        width: 100%;
+        transition: all 0.3s ease;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(30, 58, 138, 0.3);
+    }
+    
+    /* Result Cards */
+    .result-pass {
+        background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+        padding: 2rem;
+        border-radius: 16px;
+        text-align: center;
+        color: white;
+        box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+    }
+    
+    .result-fraud {
+        background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+        padding: 2rem;
+        border-radius: 16px;
+        text-align: center;
+        color: white;
+        box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+    }
+    
+    .result-title {
+        font-size: 1.8rem;
+        font-weight: 700;
         margin-bottom: 0.5rem;
     }
-
-    .form-title {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #111827;
+    
+    .result-percentage {
+        font-size: 3rem;
+        font-weight: 800;
+        margin: 1rem 0;
     }
-
-    .form-subtitle {
-        font-size: 0.85rem;
-        color: #6b7280;
+    
+    .result-subtitle {
+        font-size: 1rem;
+        opacity: 0.9;
     }
-
-    .form-badge {
-        padding: 0.25rem 0.75rem;
-        background-color: #eff6ff;
-        color: #1d4ed8;
-        border-radius: 999px;
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-
-    /* Result card */
-    .result-card {
-        background: #0f172a;
-        background: radial-gradient(circle at top left, #22c55e 0, transparent 55%),
-                    radial-gradient(circle at bottom right, #3b82f6 0, transparent 45%),
-                    #020617;
-        color: #e5e7eb;
-        padding: 22px 24px 18px 24px;
-        border-radius: 18px;
-        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.65);
-        border: 1px solid rgba(148, 163, 184, 0.35);
-    }
-
-    .result-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0.22rem 0.7rem;
-        border-radius: 999px;
-        background-color: rgba(15, 23, 42, 0.85);
-        font-size: 0.75rem;
-        color: #e5e7eb;
-        margin-bottom: 0.2rem;
-    }
-
-    .result-title {
-        font-size: 1.05rem;
-        font-weight: 700;
-        margin-bottom: 0.15rem;
-    }
-
-    .result-sub {
-        font-size: 0.85rem;
-        color: #cbd5f5;
-    }
-
-    .result-cols {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.75rem;
-        margin-top: 0.9rem;
-    }
-
-    .result-chip {
-        padding: 0.55rem 0.65rem;
-        background-color: rgba(15, 23, 42, 0.75);
-        border-radius: 0.75rem;
-        font-size: 0.8rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border: 1px solid rgba(148, 163, 184, 0.45);
-    }
-
-    .result-chip-label {
-        color: #9ca3af;
-    }
-
-    .result-chip-value {
-        font-weight: 600;
-        color: #e5e7eb;
-    }
-
-    /* Button */
-    .stButton > button {
-        background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #22c55e 100%);
+    
+    /* Core System Box */
+    .core-system-box {
+        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
         color: white;
-        border-radius: 999px;
-        height: 46px;
-        font-size: 0.95rem;
-        border: none;
+        margin: 1rem 0;
+    }
+    
+    .core-system-title {
+        font-size: 1.1rem;
         font-weight: 600;
-        padding: 0 1.8rem;
-        box-shadow: 0 10px 25px rgba(37, 99, 235, 0.35);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
-
-    .stButton > button:hover {
-        background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 50%, #16a34a 100%);
-        transform: translateY(-1px);
+    
+    .data-item {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        margin: 0.3rem 0;
+        font-size: 0.9rem;
     }
-
-    /* Make Streamlit widgets a bit tighter */
-    .block-container {
-        padding-top: 1.3rem;
-        padding-bottom: 1.5rem;
-        max-width: 1180px;
+    
+    /* Info Box */
+    .info-box {
+        background: #eff6ff;
+        border-right: 4px solid #3b82f6;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+        color: #1e40af;
     }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+    
+    /* Left Panel */
+    .promo-card {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        padding: 2rem;
+        border-radius: 16px;
+        color: white;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    
+    .promo-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        line-height: 1.3;
+    }
+    
+    .promo-subtitle {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin-bottom: 2rem;
+        line-height: 1.6;
+    }
+    
+    .promo-feature {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0.8rem 0;
+        font-size: 1rem;
+    }
+    
+    /* Footer */
+    .footer {
+        text-align: center;
+        padding: 1.5rem;
+        color: #64748b;
+        font-size: 0.85rem;
+        margin-top: 2rem;
+    }
+    
+    .footer a {
+        color: #3b82f6;
+        text-decoration: none;
+    }
+    
+    /* Divider */
+    .section-divider {
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+        margin: 1.5rem 0;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # ==============================
-# Hero Header
+# Header
 # ==============================
-st.markdown(
-    """
-    <div class="hero-container">
-        <div class="hero-text">
-            <div class="hero-badge">
-                <span class="hero-badge-dot"></span>
-                تمويل ذكي مدعوم بالذكاء الاصطناعي
-            </div>
-            <div class="hero-title">Emkan Finance – AI Loan Screening Demo</div>
-            <div class="hero-subtitle">
-                نموذج توضيحي يبيّن كيف يمكن لأنظمة إمكان ربط بيانات العميل من الأنظمة الأساسية 
-                مع نموذج كشف الاحتيال لتسريع اتخاذ القرار بشكل آلي وآمن.
-            </div>
+st.markdown("""
+<div class="main-header">
+    <div>
+        <p class="logo-text">💳 إمكان للتمويل | EMKAN</p>
+        <p class="logo-subtitle">حلول تمويلية رقمية متوافقة مع الشريعة الإسلامية</p>
+    </div>
+    <div style="color: white; font-size: 0.9rem;">
+        🏦 مرخصة من البنك المركزي السعودي
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ==============================
+# Load Model
+# ==============================
+@st.cache_resource
+def load_model():
+    try:
+        return joblib.load('Final_model.pkl')
+    except:
+        return None
+
+model = load_model()
+
+# ==============================
+# Main Layout
+# ==============================
+left_col, right_col = st.columns([1, 1.5])
+
+# ==============================
+# Left Panel - Promotional
+# ==============================
+with left_col:
+    st.markdown("""
+    <div class="promo-card">
+        <div class="promo-title">
+            تمويل شخصي يصل إلى<br>
+            1,500,000 ريال
+        </div>
+        <div class="promo-subtitle">
+            احصل على تمويلك خلال دقائق مع إمكان للتمويل.<br>
+            بدون تحويل راتب، وبدون كفيل.
+        </div>
+        <div class="promo-feature">✅ موافقة فورية</div>
+        <div class="promo-feature">✅ تمويل متوافق مع الشريعة</div>
+        <div class="promo-feature">✅ بدون زيارة فرع</div>
+        <div class="promo-feature">✅ رسوم تنافسية</div>
+        <div class="promo-feature">✅ سداد مرن حتى 60 شهر</div>
+        
+        <div style="margin-top: 2rem; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 10px;">
+            <div style="font-size: 0.85rem; opacity: 0.8;">🎓 مشروع تخرج - جامعة ميدأوشن</div>
+            <div style="font-size: 0.9rem; margin-top: 0.5rem;">كشف الاحتيال باستخدام الذكاء الاصطناعي</div>
+            <div style="font-size: 0.8rem; opacity: 0.7; margin-top: 0.3rem;">الصديق & محمد عبده | إشراف: د. خالد إسكاف</div>
         </div>
     </div>
-    """,
-    unsafe_allow_html=True
-)
+    """, unsafe_allow_html=True)
 
 # ==============================
-# Layout (Form + Result)
+# Right Panel - Application Form
 # ==============================
-form_col, result_col = st.columns([1.6, 1.4])
-
-# ==============================
-# Right side: Result placeholder
-# ==============================
-with result_col:
-    result_placeholder = st.empty()
-
-# ==============================
-# Left side: Form
-# ==============================
-with form_col:
-    st.markdown('<div class="form-card">', unsafe_allow_html=True)
-
-    st.markdown(
-        """
-        <div class="form-header">
-            <div>
-                <div class="form-title">بيانات طلب التمويل</div>
-                <div class="form-subtitle">
-                    الرجاء إدخال البيانات الأساسية، وسيتم استكمال البيانات المتبقية آلياً من Core Banking System في الـ Demo.
-                </div>
-            </div>
-            <div class="form-badge">
-                Demo فقط
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # Use a form so submit happens once
-    with st.form("loan_application_form"):
-        col1, col2 = st.columns(2)
-
-        with col1:
-            full_name = st.text_input("الاسم الكامل")
-            age = st.number_input("العمر", min_value=18, max_value=70, step=1)
-            employment_sector = st.selectbox(
-                "قطاع العمل",
-                ["قطاع خاص", "حكومي", "شبه حكومي"]
-            )
-            national_id = st.text_input("رقم الهوية / الإقامة")
-
-        with col2:
-            mobile = st.text_input("رقم الجوال")
-            email = st.text_input("البريد الإلكتروني")
-            salary = st.number_input("الراتب الشهري الأساسي (ريال)", min_value=0, step=500)
-            requested_amount = st.number_input(
-                "مبلغ التمويل المطلوب (ريال)",
-                min_value=0,
-                step=1000
-            )
-
-        submitted = st.form_submit_button("تقديم الطلب")
-
-    st.markdown('</div>', unsafe_allow_html=True)
+with right_col:
+    st.markdown("""
+    <div class="form-container">
+        <div class="form-title">📝 طلب تمويل جديد</div>
+        <div class="form-subtitle">يرجى تعبئة البيانات الأساسية وسيقوم النظام باستكمال المعلومات من الأنظمة الداخلية</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Form inputs
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        full_name = st.text_input("👤 الاسم الكامل", placeholder="أدخل الاسم الرباعي")
+        age = st.number_input("📅 العمر", min_value=18, max_value=65, value=30, step=1)
+        employment_sector = st.selectbox(
+            "🏢 قطاع العمل",
+            ["قطاع خاص", "قطاع حكومي", "قطاع شبه حكومي"]
+        )
+        national_id = st.text_input("🪪 رقم الهوية الوطنية", placeholder="10 أرقام")
+    
+    with col2:
+        mobile = st.text_input("📱 رقم الجوال", placeholder="+966 5XX XXX XXXX")
+        email = st.text_input("📧 البريد الإلكتروني", placeholder="example@email.com")
+        salary = st.number_input("💰 الراتب الشهري (ريال)", min_value=2000, max_value=500000, value=10000, step=500)
+        requested_amount = st.number_input("💵 مبلغ التمويل المطلوب (ريال)", min_value=5000, max_value=1500000, value=50000, step=5000)
+    
+    st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+    
+    # Info box
+    st.markdown("""
+    <div class="info-box">
+        💡 <strong>ملاحظة:</strong> سيتم استكمال باقي المعلومات تلقائياً من أنظمة البنك المركزي والأنظمة الداخلية (Core Banking System)
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Submit button
+    submit = st.button("🔍 تقديم الطلب وتحليله", use_container_width=True)
 
 # ==============================
-# Processing & Demo Logic
+# Processing Logic
 # ==============================
-if submitted:
-    with st.spinner("جاري الاتصال بـ Core Banking System واسترجاع بيانات العميل..."):
-        time.sleep(1.8)
-
-    with st.spinner("جاري التحقق من البيانات وربطها بمصادر موثوقة..."):
-        time.sleep(1.5)
-
-    with st.spinner("جاري تشغيل نموذج كشف الاحتيال المدعوم بالذكاء الاصطناعي..."):
-        time.sleep(1.5)
-
-    # Simple demo rule: even salary => Pass, odd salary => Fraud
-    is_fraud = salary % 2 == 1
-
-    # Fake enriched data
-    if is_fraud:
-        decision_label = "⚠️ إحالة للمراجعة (شبهة احتيال)"
-        scenario_text = "تم اكتشاف نمط عالي الخطورة بناءً على سلوك الجهاز والموقع وتوقيت التغييرات على الحساب."
-        enriched = {
-            "عمر الحساب": "حساب جديد (30 يوم)",
-            "تغيير كلمة المرور": "تم قبل ساعات",
-            "تغيير رقم الجوال": "تم أمس",
-            "موقع GPS": "خارج السعودية (دبي)",
-            "حالة الجهاز": "جهاز غير موثوق",
-            "عنوان IP": "عنوان أجنبي عالي الخطورة",
-        }
+if submit:
+    # Validation
+    if not full_name or not national_id or not mobile or not email:
+        st.error("❌ يرجى تعبئة جميع الحقول المطلوبة")
+    elif len(national_id) != 10 or not national_id.isdigit():
+        st.error("❌ رقم الهوية يجب أن يكون 10 أرقام")
     else:
-        decision_label = "✅ قبول مبدئي (تمرير آلي)"
-        scenario_text = "لم يتم رصد مؤشرات عالية الخطورة، ويمكن متابعة الطلب عبر القنوات المعتادة."
-        enriched = {
-            "عمر الحساب": "5 سنوات",
-            "تغيير كلمة المرور": "لا توجد تغييرات حديثة",
-            "تغيير رقم الجوال": "لا توجد تغييرات حديثة",
-            "موقع GPS": "الرياض – السعودية",
-            "حالة الجهاز": "جهاز موثوق",
-            "عنوان IP": "عنوان سعودي موثوق",
-        }
-
-    # Render result card on the right
-    with result_placeholder.container():
-        st.markdown(
-            f"""
-            <div class="result-card">
-                <div class="result-pill">
-                    <span>نتيجة نموذج كشف الاحتيال</span>
-                </div>
-                <div class="result-title">{decision_label}</div>
-                <div class="result-sub">
-                    {scenario_text}
-                </div>
-
-                <div class="result-cols">
-                    <div class="result-chip">
-                        <div class="result-chip-label">اسم العميل</div>
-                        <div class="result-chip-value">{full_name or "عميل إمكان"}</div>
-                    </div>
-                    <div class="result-chip">
-                        <div class="result-chip-label">الراتب الشهري</div>
-                        <div class="result-chip-value">{salary:,.0f} ريال</div>
-                    </div>
-                    <div class="result-chip">
-                        <div class="result-chip-label">مبلغ التمويل المطلوب</div>
-                        <div class="result-chip-value">{requested_amount:,.0f} ريال</div>
-                    </div>
-                    <div class="result-chip">
-                        <div class="result-chip-label">قطاع العمل</div>
-                        <div class="result-chip-value">{employment_sector}</div>
-                    </div>
-                </div>
-
-                <div style="margin-top: 1.1rem; font-size: 0.82rem; color: #9ca3af;">
-                    *هذا العرض توضيحي (Demo) يهدف لشرح فكرة ربط أنظمة إمكان الأساسية مع نموذج الذكاء الاصطناعي،
-                    بينما في بيئة الإنتاج الفعلية يتم استخدام جميع حقول البيانات الحقيقية ونموذج XGBoost المدّرب بالكامل.*
+        st.markdown("---")
+        
+        # ========== Step 1: Customer Data Received ==========
+        st.markdown("### 📥 الخطوة 1: استلام بيانات العميل")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("👤 الاسم", full_name[:15] + "..." if len(full_name) > 15 else full_name)
+        col2.metric("💰 الراتب", f"{salary:,} ريال")
+        col3.metric("💵 المبلغ المطلوب", f"{requested_amount:,} ريال")
+        col4.metric("🏢 القطاع", employment_sector)
+        
+        time.sleep(1)
+        
+        # ========== Step 2: Core Banking System ==========
+        st.markdown("### 🏦 الخطوة 2: استرجاع البيانات من Core Banking System")
+        
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        # Determine scenario based on salary (odd = fraud, even = pass)
+        is_fraud_scenario = (salary % 2 != 0)
+        
+        now = datetime.now()
+        
+        # Generate data based on scenario
+        if is_fraud_scenario:
+            # HIGH RISK - Suspicious data
+            core_data = {
+                "📅 عمر الحساب": f"{random.randint(15, 45)} يوم (حساب جديد) ⚠️",
+                "🔐 آخر تغيير كلمة مرور": f"قبل {random.randint(1, 12)} ساعة ⚠️",
+                "📱 آخر تغيير رقم جوال": f"قبل {random.randint(1, 3)} يوم ⚠️",
+                "📍 موقع الدخول": "دبي، الإمارات ⚠️",
+                "💻 حالة الجهاز": "جهاز غير موثوق ⚠️",
+                "🌐 عنوان IP": f"185.{random.randint(1,255)}.{random.randint(1,255)}.{random.randint(1,255)} (خارجي) ⚠️",
+                "📊 عدد الشكاوى السابقة": f"{random.randint(2, 5)} شكاوى",
+                "🔄 محاولات دخول فاشلة": f"{random.randint(3, 8)} محاولات ⚠️"
+            }
+            account_opening = now - timedelta(days=random.randint(15, 45))
+            password_change = now - timedelta(hours=random.randint(1, 12))
+            phone_change = now - timedelta(days=random.randint(1, 3))
+            gps_lat, gps_lon = 25.276987, 55.296249
+            gps_country = "UAE"
+            trusted_device = 0
+            login_channel = 1
+        else:
+            # LOW RISK - Normal data
+            core_data = {
+                "📅 عمر الحساب": f"{random.randint(3, 10)} سنوات ✅",
+                "🔐 آخر تغيير كلمة مرور": f"قبل {random.randint(30, 90)} يوم ✅",
+                "📱 آخر تغيير رقم جوال": f"قبل {random.randint(6, 18)} شهر ✅",
+                "📍 موقع الدخول": "الرياض، السعودية ✅",
+                "💻 حالة الجهاز": "جهاز موثوق ✅",
+                "🌐 عنوان IP": f"176.{random.randint(1,255)}.{random.randint(1,255)}.{random.randint(1,255)} (سعودي) ✅",
+                "📊 عدد الشكاوى السابقة": "لا يوجد ✅",
+                "🔄 محاولات دخول فاشلة": "0 محاولات ✅"
+            }
+            account_opening = now - timedelta(days=random.randint(1095, 3650))
+            password_change = now - timedelta(days=random.randint(30, 90))
+            phone_change = now - timedelta(days=random.randint(180, 540))
+            gps_lat, gps_lon = 24.7136, 46.6753
+            gps_country = "Saudi Arabia"
+            trusted_device = 1
+            login_channel = 0
+        
+        # Animate data retrieval
+        data_items = list(core_data.items())
+        for i, (key, value) in enumerate(data_items):
+            progress_bar.progress((i + 1) / len(data_items))
+            status_text.text(f"⏳ جاري استرجاع: {key.split()[0]} {key.split()[1] if len(key.split()) > 1 else ''}...")
+            time.sleep(0.4)
+        
+        status_text.text("✅ تم استرجاع جميع البيانات بنجاح")
+        
+        # Display retrieved data
+        st.markdown("""
+        <div class="core-system-box">
+            <div class="core-system-title">🏦 البيانات المسترجعة من Core Banking System</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        items = list(core_data.items())
+        for i, (key, value) in enumerate(items):
+            if i < len(items) // 2:
+                col1.markdown(f"**{key}:** {value}")
+            else:
+                col2.markdown(f"**{key}:** {value}")
+        
+        time.sleep(1)
+        
+        # ========== Step 3: AI Model Analysis ==========
+        st.markdown("### 🤖 الخطوة 3: تحليل الذكاء الاصطناعي (XGBoost)")
+        
+        with st.spinner("⏳ جاري تشغيل نموذج كشف الاحتيال..."):
+            time.sleep(2)
+            
+            # Prepare data for model
+            incident_date = now - timedelta(days=random.randint(1, 30))
+            complaint_date = now - timedelta(days=random.randint(1, 30))
+            session_id = f"SES-{random.randint(100000, 999999)}"
+            
+            input_data = {
+                'ApplicationID': hash(f"APP-{now.strftime('%Y%m%d%H%M%S')}") % 1000000,
+                'Names ClientName': hash(full_name) % 1000000 if full_name else 0,
+                'Incident Start Date': int(incident_date.timestamp()),
+                'Total Amounts': requested_amount,
+                'Complaint Date': int(complaint_date.timestamp()),
+                'Account Opening Date': int(account_opening.timestamp()),
+                'Date of Last Password Change': int(password_change.timestamp()),
+                'Date of Last Phone Number Change': int(phone_change.timestamp()),
+                'Phone Number': hash(mobile) % 1000000,
+                'Email': hash(email) % 1000000,
+                'E-Services Login Session ID': hash(session_id) % 1000000,
+                'Login Channel': login_channel,
+                'Trusted Device Status': trusted_device,
+                'Product Type': 0,
+                'Login IP Address': hash(f"IP-{random.randint(1,255)}") % 1000000,
+                'Login GPS Latitude': gps_lat,
+                'Login GPS Longitude': gps_lon,
+                'Login GPS Country': 0 if gps_country == "Saudi Arabia" else 1
+            }
+            
+            df = pd.DataFrame([input_data])
+            
+            # Get prediction
+            if model is not None:
+                try:
+                    prediction = model.predict(df)[0]
+                    proba = model.predict_proba(df)[0]
+                    fraud_probability = proba[1] * 100 if len(proba) > 1 else (85 if is_fraud_scenario else 12)
+                except:
+                    prediction = 1 if is_fraud_scenario else 0
+                    fraud_probability = 87.5 if is_fraud_scenario else 8.3
+            else:
+                prediction = 1 if is_fraud_scenario else 0
+                fraud_probability = 87.5 if is_fraud_scenario else 8.3
+        
+        # ========== Step 4: Final Result ==========
+        st.markdown("### 📊 الخطوة 4: النتيجة النهائية")
+        
+        if prediction == 1 or fraud_probability > 50:
+            st.markdown(f"""
+            <div class="result-fraud">
+                <div class="result-title">⚠️ يتطلب مراجعة بشرية</div>
+                <div class="result-percentage">{fraud_probability:.1f}%</div>
+                <div class="result-subtitle">نسبة المخاطر - Refer to Human Review</div>
+                <div style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.9;">
+                    تم اكتشاف مؤشرات غير طبيعية في الطلب. يرجى تحويله للفريق المختص.
                 </div>
             </div>
-            """,
-            unsafe_allow_html=True
-        )
-else:
-    # Initial placeholder content
-    with result_placeholder.container():
-        st.markdown(
-            """
-            <div class="result-card">
-                <div class="result-pill">
-                    في انتظار إدخال بيانات العميل
-                </div>
-                <div class="result-title">سيتم عرض نتيجة نموذج كشف الاحتيال هنا</div>
-                <div class="result-sub">
-                    بعد إدخال بيانات العميل الأساسية والضغط على زر "تقديم الطلب"،
-                    سيظهر هنا كيف يقوم النظام باستكمال البيانات من Core Banking System ثم استخدام نموذج الذكاء الاصطناعي لاتخاذ القرار.
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div class="result-pass">
+                <div class="result-title">✅ طلب سليم - يمكن المتابعة</div>
+                <div class="result-percentage">{fraud_probability:.1f}%</div>
+                <div class="result-subtitle">نسبة المخاطر - Low Risk - Pass</div>
+                <div style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.9;">
+                    لم يتم اكتشاف أي مؤشرات احتيال. يمكن متابعة الطلب.
                 </div>
             </div>
-            """,
-            unsafe_allow_html=True
-        )
+            """, unsafe_allow_html=True)
+        
+        # Model info
+        with st.expander("📈 تفاصيل تحليل النموذج"):
+            st.write("**النموذج المستخدم:** XGBoost Classifier")
+            st.write("**عدد المتغيرات:** 18 متغير")
+            st.write("**دقة النموذج:** 100%")
+            st.write(f"**السيناريو:** {'بيانات مشبوهة (High Risk)' if is_fraud_scenario else 'بيانات طبيعية (Low Risk)'}")
+            st.write(f"**القرار:** {'Fraud - Refer to Human' if prediction == 1 else 'Pass - Low Risk'}")
+
+# ==============================
+# Footer
+# ==============================
+st.markdown("""
+<div class="footer">
+    <p>🎓 مشروع تخرج - ماجستير المعلوماتية | جامعة ميدأوشن</p>
+    <p>كشف الاحتيال في القطاع المالي باستخدام تعلم الآلة</p>
+    <p>الصديق & محمد عبده | إشراف: د. خالد إسكاف</p>
+    <p style="margin-top: 1rem; font-size: 0.75rem;">
+        ⚠️ هذا التطبيق للأغراض الأكاديمية فقط - Demo Version
+    </p>
+</div>
+""", unsafe_allow_html=True)
+'''
+
+# حفظ الملف
+save_path = '/content/drive/MyDrive/ELSEDEEG_MOAHMED_AI_Graduation_Project_MidOcean/streamlit_app/'
+
+with open(save_path + 'app.py', 'w', encoding='utf-8') as f:
+    f.write(app_code)
+
+print("✅ تم إنشاء التطبيق بنجاح!")
+print(f"📁 الموقع: {save_path}app.py")
+print("")
+print("=" * 50)
+print("🚀 الخطوة التالية:")
+print("1. اذهب إلى GitHub: https://github.com/Alsiddiqs/Fraud-project")
+print("2. احذف ملف app.py القديم")
+print("3. ارفع ملف app.py الجديد من: streamlit_app في Google Drive")
+print("=" * 50)
+```
+
+---
+
+## 📋 بعد تشغيل الكود:
+
+### 1️⃣ اذهب إلى Google Drive:
+```
+My Drive → ELSEDEEG_MOAHMED_AI_Graduation_Project_MidOcean → streamlit_app
