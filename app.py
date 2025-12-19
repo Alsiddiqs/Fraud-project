@@ -1,6 +1,3 @@
-# ===== إنشاء تطبيق إمكان للتمويل - Demo =====
-
-app_code = '''
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -428,7 +425,7 @@ if submit:
         data_items = list(core_data.items())
         for i, (key, value) in enumerate(data_items):
             progress_bar.progress((i + 1) / len(data_items))
-            status_text.text(f"⏳ جاري استرجاع: {key.split()[0]} {key.split()[1] if len(key.split()) > 1 else ''}...")
+            status_text.text(f"⏳ جاري استرجاع: {key}...")
             time.sleep(0.4)
         
         status_text.text("✅ تم استرجاع جميع البيانات بنجاح")
@@ -544,29 +541,3 @@ st.markdown("""
     </p>
 </div>
 """, unsafe_allow_html=True)
-'''
-
-# حفظ الملف
-save_path = '/content/drive/MyDrive/ELSEDEEG_MOAHMED_AI_Graduation_Project_MidOcean/streamlit_app/'
-
-with open(save_path + 'app.py', 'w', encoding='utf-8') as f:
-    f.write(app_code)
-
-print("✅ تم إنشاء التطبيق بنجاح!")
-print(f"📁 الموقع: {save_path}app.py")
-print("")
-print("=" * 50)
-print("🚀 الخطوة التالية:")
-print("1. اذهب إلى GitHub: https://github.com/Alsiddiqs/Fraud-project")
-print("2. احذف ملف app.py القديم")
-print("3. ارفع ملف app.py الجديد من: streamlit_app في Google Drive")
-print("=" * 50)
-```
-
----
-
-## 📋 بعد تشغيل الكود:
-
-### 1️⃣ اذهب إلى Google Drive:
-```
-My Drive → ELSEDEEG_MOAHMED_AI_Graduation_Project_MidOcean → streamlit_app
