@@ -150,14 +150,14 @@ st.markdown("""
         box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
     }
     
-    /* Warning Card */
-    .warning-card {
-        background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+    /* Referral Card - Changed from yellow to red/orange */
+    .referral-card {
+        background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
         padding: 3rem;
         border-radius: 16px;
         text-align: center;
         color: white;
-        box-shadow: 0 10px 30px rgba(245, 158, 11, 0.3);
+        box-shadow: 0 10px 30px rgba(220, 38, 38, 0.3);
     }
     
     /* Info Card */
@@ -187,23 +187,25 @@ st.markdown("""
         margin: 1.5rem 0;
     }
     
-    /* Progress item */
-    .progress-item {
-        background: #f8fafc;
+    /* Progress items - FIXED COLORS */
+    .progress-item-success {
+        background: #d1fae5;
         padding: 12px 16px;
         border-radius: 8px;
         margin: 8px 0;
-        border-left: 4px solid #6f86e8;
-    }
-    
-    .progress-item-success {
-        border-left-color: #10b981;
-        background: #f0fdf4;
+        border-left: 4px solid #10b981;
+        color: #065f46;
+        font-weight: 500;
     }
     
     .progress-item-warning {
-        border-left-color: #f59e0b;
-        background: #fffbeb;
+        background: #fee2e2;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin: 8px 0;
+        border-left: 4px solid #ef4444;
+        color: #991b1b;
+        font-weight: 500;
     }
     
     /* Researcher info */
@@ -480,11 +482,12 @@ def page_fetching_data():
                 
                 time.sleep(0.7)
                 
+                # FIXED: Using CSS classes with visible text colors
                 icon = "✅" if is_ok else "⚠️"
                 item_class = "progress-item-success" if is_ok else "progress-item-warning"
                 
                 st.markdown(f"""
-                <div class="progress-item {item_class}">
+                <div class="{item_class}">
                     {icon} <strong>{field_name}:</strong> {field_value}
                 </div>
                 """, unsafe_allow_html=True)
@@ -570,7 +573,7 @@ def page_offer():
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==============================
-# PAGE 3b: Referral Page (FRAUD)
+# PAGE 3b: Referral Page (FRAUD) - FIXED COLOR
 # ==============================
 def page_referral():
     left_col, right_col = st.columns([1, 2])
@@ -583,8 +586,9 @@ def page_referral():
         
         render_stepper(3)
         
+        # FIXED: Changed from yellow to red for consistency
         st.markdown("""
-        <div class="warning-card">
+        <div class="referral-card">
             <h2 style="margin-bottom: 0.5rem;">📋 Additional Verification Required</h2>
             <p style="opacity: 0.9; font-size: 1.1rem; margin-top: 1rem;">
                 Your application requires additional review.
