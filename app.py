@@ -1,355 +1,184 @@
 import streamlit as st
 from pathlib import Path
-import base64
 
 # -----------------------------
-# Page config
+# Page configuration
 # -----------------------------
-st.set_page_config(page_title="EMKAN Demo", page_icon="✅", layout="wide")
+st.set_page_config(
+    page_title="EMKAN | Fraud Detection",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
 # -----------------------------
-# Helpers
+# Paths
 # -----------------------------
-def b64_file(path: str) -> str:
-    p = Path(path)
-    data = p.read_bytes()
-    return base64.b64encode(data).decode("utf-8")
+BASE_DIR = Path(__file__).parent
+LEFT_IMAGE = BASE_DIR / "sme-main.svg"
+LOGO_IMAGE = BASE_DIR / "emkan_logo.png"
 
-def inject_global_css():
-    # ألوان قريبة من Emkan + طلبك (أزرق متوسط + خلفية فاتحة مائلة للأزرق)
-    PRIMARY = "#3B3F8F"     # medium blue/indigo
-    BG_LIGHT = "#F3F6FF"    # light bluish background
-    BORDER = "#E2E6F3"
-    TEXT_MUTED = "#7A7F95"
-    ACCENT = "#2CB6A6"      # teal accent (للـ step 1)
+# -----------------------------
+# Custom CSS (Emkan-like)
+# -----------------------------
+st.markdown("""
+<style>
 
-    st.markdown(
-        f"""
-        <style>
-        /* Hide Streamlit chrome */
-        #MainMenu, header, footer {{ display:none !important; }}
-        .stApp {{ background: {BG_LIGHT}; }}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 
-        /* Remove default paddings */
-        .block-container {{
-            padding-top: 0rem !important;
-            padding-bottom: 0rem !important;
-            max-width: 1400px;
-        }}
+html, body, [class*="css"]  {
+    font-family: 'Inter', sans-serif;
+}
 
-        /* Layout wrappers */
-        .emk-shell {{
-            display:flex;
-            min-height: 100vh;
-            width: 100%;
-        }}
+body {
+    background-color: #f4f7ff;
+}
 
-        .emk-left {{
-            flex: 0 0 28%;
-            background: {PRIMARY};
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            padding: 32px 18px;
-        }}
+.main {
+    padding: 0;
+}
 
-        .emk-left img {{
-            width: 95%;
-            height: auto;
-            object-fit: contain;
-            user-select:none;
-            -webkit-user-drag:none;
-        }}
+/* Remove Streamlit default padding */
+.block-container {
+    padding-top: 0;
+    padding-bottom: 0;
+}
 
-        .emk-right {{
-            flex: 1;
-            background: transparent;
-            padding: 34px 38px;
-        }}
+/* Left section */
+.left-panel {
+    background-color: #3f3d73;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
-        /* Top tiny language */
-        .emk-top {{
-            display:flex;
-            justify-content:flex-end;
-            align-items:center;
-            margin-bottom: 18px;
-        }}
-        .emk-lang {{
-            font-size: 14px;
-            color: {PRIMARY};
-            font-weight: 600;
-            display:flex;
-            align-items:center;
-            gap: 8px;
-            opacity: .9;
-        }}
+/* Right section */
+.right-panel {
+    background-color: #ffffff;
+    padding: 60px 80px;
+    height: 100vh;
+    overflow-y: auto;
+}
 
-        /* Titles */
-        .emk-title {{
-            font-size: 36px;
-            font-weight: 700;
-            color: #111827;
-            margin: 0;
-        }}
-        .emk-sub {{
-            font-size: 14px;
-            color: {TEXT_MUTED};
-            margin-top: 6px;
-            margin-bottom: 18px;
-        }}
-        .emk-sub a {{
-            color: {PRIMARY};
-            text-decoration: underline;
-            font-weight: 600;
-            margin-left: 6px;
-        }}
+/* Titles */
+.title {
+    font-size: 32px;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 5px;
+}
 
-        /* Stepper */
-        .emk-stepper {{
-            display:flex;
-            align-items:center;
-            gap: 10px;
-            margin: 18px 0 22px 0;
-        }}
-        .emk-step {{
-            width: 26px;
-            height: 26px;
-            border-radius: 999px;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-size: 13px;
-            font-weight: 700;
-            color: #fff;
-        }}
-        .emk-step.active {{ background: {ACCENT}; }}
-        .emk-step.inactive {{ background: #C7CBDC; }}
-        .emk-line {{
-            height: 1px;
-            flex: 1;
-            background: #D9DDEA;
-            margin: 0 4px;
-        }}
-        .emk-step-label {{
-            font-size: 15px;
-            font-weight: 700;
-            color: #111827;
-            white-space: nowrap;
-        }}
+.subtitle {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 40px;
+}
 
-        /* Form labels */
-        .emk-section {{
-            font-size: 18px;
-            font-weight: 700;
-            color: #111827;
-            margin: 8px 0 14px 0;
-        }}
-        .emk-label {{
-            font-size: 14px;
-            font-weight: 700;
-            color: #111827;
-            margin-bottom: 6px;
-        }}
+/* Section title */
+.section-title {
+    font-size: 20px;
+    font-weight: 500;
+    margin-bottom: 25px;
+}
 
-        /* Inputs styling (Streamlit widgets) */
-        div[data-testid="stTextInput"] input,
-        div[data-testid="stDateInput"] input {{
-            height: 48px !important;
-            border-radius: 12px !important;
-            border: 1px solid {BORDER} !important;
-            background: rgba(255,255,255,0.55) !important;
-            font-size: 16px !important;
-        }}
+/* Inputs */
+.stTextInput input,
+.stNumberInput input,
+.stDateInput input {
+    height: 48px;
+    border-radius: 10px;
+    border: 1px solid #d1d5db;
+    font-size: 15px;
+}
 
-        div[data-testid="stTextInput"] input:focus,
-        div[data-testid="stDateInput"] input:focus {{
-            border: 1px solid #B9BFE3 !important;
-            box-shadow: 0 0 0 3px rgba(59,63,143,0.12) !important;
-        }}
+/* Button */
+.stButton button {
+    height: 48px;
+    border-radius: 12px;
+    background-color: #5b6cff;
+    color: white;
+    font-size: 15px;
+    font-weight: 500;
+    border: none;
+}
 
-        /* Checkbox line */
-        .emk-checks {{
-            margin-top: 12px;
-            padding-top: 14px;
-        }}
+.stButton button:hover {
+    background-color: #4a5af0;
+}
 
-        /* Primary button */
-        div.stButton > button {{
-            height: 48px !important;
-            border-radius: 14px !important;
-            border: 1px solid {PRIMARY} !important;
-            background: {PRIMARY} !important;
-            color: #fff !important;
-            font-weight: 700 !important;
-            width: 100%;
-        }}
-        div.stButton > button:hover {{
-            filter: brightness(0.97);
-        }}
+/* Checkbox text */
+.stCheckbox label {
+    font-size: 14px;
+}
 
-        /* Home hero */
-        .home-hero {{
-            min-height: 100vh;
-            background: {PRIMARY};
-            border-radius: 0;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            padding: 60px 40px;
-            position: relative;
-            overflow:hidden;
-        }}
-        .home-card {{
-            width: min(1100px, 95%);
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            gap: 30px;
-        }}
-        .home-text h1 {{
-            color: #8FE0D7;
-            font-size: 56px;
-            line-height: 1.05;
-            margin: 0 0 18px 0;
-            font-weight: 800;
-        }}
-        .home-text p {{
-            color: rgba(255,255,255,0.85);
-            font-size: 16px;
-            margin: 6px 0;
-        }}
-        .home-cta {{
-            margin-top: 22px;
-            max-width: 260px;
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+</style>
+""", unsafe_allow_html=True)
 
-def render_home():
-    inject_global_css()
+# -----------------------------
+# Layout
+# -----------------------------
+left_col, right_col = st.columns([1, 2], gap="large")
 
-    st.markdown('<div class="home-hero">', unsafe_allow_html=True)
-    st.markdown('<div class="home-card">', unsafe_allow_html=True)
-
-    # Left text like Emkan main page
-    st.markdown(
-        """
-        <div class="home-text">
-          <h1>Transforming finance<br/>into a digital experience</h1>
-          <p>Fast onboarding • Smart screening • Smooth journey</p>
-          <p>Demo shows AI-assisted loan screening workflow</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # CTA button: Personal = Get Started
-    st.markdown('<div class="home-cta">', unsafe_allow_html=True)
-    if st.button("Personal  •  Get Started", key="btn_get_started"):
-        st.session_state.page = "register"
-        st.rerun()
+# -----------------------------
+# Left Panel (Image)
+# -----------------------------
+with left_col:
+    st.markdown('<div class="left-panel">', unsafe_allow_html=True)
+    if LEFT_IMAGE.exists():
+        st.image(str(LEFT_IMAGE), use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('</div></div>', unsafe_allow_html=True)
+# -----------------------------
+# Right Panel (Form)
+# -----------------------------
+with right_col:
+    st.markdown('<div class="right-panel">', unsafe_allow_html=True)
 
+    # Logo
+    if LOGO_IMAGE.exists():
+        st.image(str(LOGO_IMAGE), width=140)
 
-def render_register():
-    inject_global_css()
-
-    # Left image
-    img_path = Path("assets/sme-main.svg")
-    left_img_html = ""
-    if img_path.exists():
-        b64 = b64_file(str(img_path))
-        left_img_html = f'<img src="data:image/svg+xml;base64,{b64}" alt="left"/>'
-    else:
-        # fallback empty (بس الأفضل تحط الصورة فعلياً)
-        left_img_html = '<div style="color:white;font-weight:700;">Add assets/sme-main.svg</div>'
-
-    st.markdown('<div class="emk-shell">', unsafe_allow_html=True)
-
-    st.markdown(f'<div class="emk-left">{left_img_html}</div>', unsafe_allow_html=True)
-    st.markdown('<div class="emk-right">', unsafe_allow_html=True)
-
-    # Top right language
+    # Header
+    st.markdown('<div class="title">Registration</div>', unsafe_allow_html=True)
     st.markdown(
-        """
-        <div class="emk-top">
-          <div class="emk-lang">🌐 العربية</div>
-        </div>
-        """,
+        '<div class="subtitle">Already have an account? <b>login</b></div>',
         unsafe_allow_html=True
     )
 
-    # Title section
-    st.markdown('<h1 class="emk-title">Registration</h1>', unsafe_allow_html=True)
-    st.markdown('<div class="emk-sub">already have an account? <a>login</a></div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Your information</div>', unsafe_allow_html=True)
 
-    # Stepper (1 active, 2-4 inactive)
-    st.markdown(
-        """
-        <div class="emk-stepper">
-          <div class="emk-step active">1</div>
-          <div class="emk-step-label">Your information</div>
-          <div class="emk-line"></div>
-          <div class="emk-step inactive">2</div>
-          <div class="emk-line"></div>
-          <div class="emk-step inactive">3</div>
-          <div class="emk-line"></div>
-          <div class="emk-step inactive">4</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    # Form
+    with st.form("registration_form"):
+        col1, col2 = st.columns(2)
 
-    st.markdown('<div class="emk-section">Your information</div>', unsafe_allow_html=True)
+        with col1:
+            national_id = st.text_input("Owner National ID / Iqama", max_chars=10)
+            unn = st.text_input("Unified National Number (UNN)", max_chars=10)
+            mobile = st.text_input("Mobile Number", placeholder="+966xxxxxxxxx")
 
-    # Form (معلومات العميل المطلوبة فقط)
-    col1, col2 = st.columns(2, gap="large")
+        with col2:
+            company_name = st.text_input("English Company Name")
+            email = st.text_input("Email Address")
+            dob = st.date_input("Date of birth")
 
-    with col1:
-        st.markdown('<div class="emk-label">National ID / Iqama</div>', unsafe_allow_html=True)
-        nid = st.text_input("", placeholder="National ID / Iqama", label_visibility="collapsed", max_chars=10)
+        st.markdown("")
 
-        st.markdown('<div class="emk-label">Mobile Number</div>', unsafe_allow_html=True)
-        mobile = st.text_input("", placeholder="+966 Mobile Number", label_visibility="collapsed", max_chars=13)
+        agree_terms = st.checkbox(
+            "I have read and agree to the Terms & Conditions and Privacy Notice"
+        )
 
-    with col2:
-        st.markdown('<div class="emk-label">Email Address</div>', unsafe_allow_html=True)
-        email = st.text_input("", placeholder="Email Address", label_visibility="collapsed")
+        consent_data = st.checkbox(
+            "I consent to EMKAN retrieving my data from third parties"
+        )
 
-        st.markdown('<div class="emk-label">Date of birth</div>', unsafe_allow_html=True)
-        dob = st.date_input("", value=None, label_visibility="collapsed")
+        st.markdown("")
 
-    st.markdown('<div class="emk-checks"></div>', unsafe_allow_html=True)
+        submit = st.form_submit_button("Continue")
 
-    consent_1 = st.checkbox("I have read and agree to the Terms & Conditions and Privacy Notice")
-    consent_2 = st.checkbox("I consent to retrieve my data from third parties (demo)")
+        if submit:
+            if not agree_terms:
+                st.warning("Please accept the Terms & Conditions.")
+            else:
+                st.success("Information submitted successfully.")
 
-    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
-
-    # Continue button
-    can_continue = bool(nid and mobile and consent_1 and consent_2)
-    if st.button("Continue", disabled=not can_continue, key="btn_continue"):
-        st.session_state.page = "retrieve"  # الصفحة التالية (استرجاع البيانات ببطء) سنبنيها بالخطوة القادمة
-        st.rerun()
-
-    st.markdown('</div></div>', unsafe_allow_html=True)  # close right + shell
-
-
-# -----------------------------
-# Router
-# -----------------------------
-if "page" not in st.session_state:
-    st.session_state.page = "home"
-
-if st.session_state.page == "home":
-    render_home()
-elif st.session_state.page == "register":
-    render_register()
-else:
-    # Placeholder للخطوة القادمة (Retrieve page)
-    inject_global_css()
-    st.markdown("<div style='padding:40px;font-size:22px;font-weight:800;'>Next: Retrieve customer data (demo)</div>", unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
