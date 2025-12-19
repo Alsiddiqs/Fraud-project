@@ -1,184 +1,156 @@
 import streamlit as st
 from pathlib import Path
+import time
+import joblib
+import pandas as pd
 
-# -----------------------------
-# Page configuration
-# -----------------------------
+# ==============================
+# Page Configuration
+# ==============================
 st.set_page_config(
-    page_title="EMKAN | Fraud Detection",
+    page_title="EMKAN Finance – AI Loan Screening",
+    page_icon="💳",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# -----------------------------
+# ==============================
 # Paths
-# -----------------------------
+# ==============================
 BASE_DIR = Path(__file__).parent
 LEFT_IMAGE = BASE_DIR / "sme-main.svg"
-LOGO_IMAGE = BASE_DIR / "emkan_logo.png"
+MODEL_PATH = BASE_DIR / "Final_model.pkl"
+DATA_PATH = BASE_DIR / "loan_applications_fraud_4400.xlsx"
 
-# -----------------------------
-# Custom CSS (Emkan-like)
-# -----------------------------
-st.markdown("""
-<style>
+# ==============================
+# Custom CSS (Inspired by EMKAN)
+# ==============================
+st.markdown(
+    """
+    <style>
+    body {
+        background-color: #f4f7fb;
+    }
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+    .left-panel {
+        background: linear-gradient(180deg, #3f3d73 0%, #4a4fa3 100%);
+        height: 100vh;
+        padding: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
-html, body, [class*="css"]  {
-    font-family: 'Inter', sans-serif;
-}
+    .form-card {
+        background: #ffffff;
+        padding: 40px;
+        border-radius: 16px;
+        box-shadow: 0px 10px 30px rgba(0,0,0,0.08);
+    }
 
-body {
-    background-color: #f4f7ff;
-}
+    h1, h2 {
+        color: #1f2937;
+    }
 
-.main {
-    padding: 0;
-}
+    label {
+        font-weight: 600;
+        color: #374151;
+    }
 
-/* Remove Streamlit default padding */
-.block-container {
-    padding-top: 0;
-    padding-bottom: 0;
-}
+    .stButton > button {
+        background-color: #6f86e8;
+        color: white;
+        border-radius: 12px;
+        height: 48px;
+        font-size: 16px;
+        border: none;
+    }
 
-/* Left section */
-.left-panel {
-    background-color: #3f3d73;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+    .stButton > button:hover {
+        background-color: #5a6fd6;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-/* Right section */
-.right-panel {
-    background-color: #ffffff;
-    padding: 60px 80px;
-    height: 100vh;
-    overflow-y: auto;
-}
-
-/* Titles */
-.title {
-    font-size: 32px;
-    font-weight: 600;
-    color: #111827;
-    margin-bottom: 5px;
-}
-
-.subtitle {
-    font-size: 14px;
-    color: #6b7280;
-    margin-bottom: 40px;
-}
-
-/* Section title */
-.section-title {
-    font-size: 20px;
-    font-weight: 500;
-    margin-bottom: 25px;
-}
-
-/* Inputs */
-.stTextInput input,
-.stNumberInput input,
-.stDateInput input {
-    height: 48px;
-    border-radius: 10px;
-    border: 1px solid #d1d5db;
-    font-size: 15px;
-}
-
-/* Button */
-.stButton button {
-    height: 48px;
-    border-radius: 12px;
-    background-color: #5b6cff;
-    color: white;
-    font-size: 15px;
-    font-weight: 500;
-    border: none;
-}
-
-.stButton button:hover {
-    background-color: #4a5af0;
-}
-
-/* Checkbox text */
-.stCheckbox label {
-    font-size: 14px;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-# -----------------------------
+# ==============================
 # Layout
-# -----------------------------
-left_col, right_col = st.columns([1, 2], gap="large")
+# ==============================
+left_col, right_col = st.columns([1.1, 1.9])
 
-# -----------------------------
-# Left Panel (Image)
-# -----------------------------
+# ==============================
+# Left Panel (SVG safe load)
+# ==============================
 with left_col:
     st.markdown('<div class="left-panel">', unsafe_allow_html=True)
+
     if LEFT_IMAGE.exists():
-        st.image(str(LEFT_IMAGE), use_container_width=True)
+        if LEFT_IMAGE.suffix.lower() == ".svg":
+            svg_bytes = LEFT_IMAGE.read_bytes()
+            st.image(svg_bytes, use_container_width=True)
+        else:
+            st.image(str(LEFT_IMAGE), use_container_width=True)
+
     st.markdown('</div>', unsafe_allow_html=True)
 
-# -----------------------------
-# Right Panel (Form)
-# -----------------------------
+# ==============================
+# Right Panel – Registration Form
+# ==============================
 with right_col:
-    st.markdown('<div class="right-panel">', unsafe_allow_html=True)
+    st.markdown('<div class="form-card">', unsafe_allow_html=True)
 
-    # Logo
-    if LOGO_IMAGE.exists():
-        st.image(str(LOGO_IMAGE), width=140)
+    st.markdown("### Registration")
+    st.markdown("Already have an account? **Login**")
 
-    # Header
-    st.markdown('<div class="title">Registration</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="subtitle">Already have an account? <b>login</b></div>',
-        unsafe_allow_html=True
-    )
+    st.markdown("---")
+    st.markdown("#### Your information")
 
-    st.markdown('<div class="section-title">Your information</div>', unsafe_allow_html=True)
+    # ---- Inputs (Only what customer enters) ----
+    col1, col2 = st.columns(2)
 
-    # Form
-    with st.form("registration_form"):
-        col1, col2 = st.columns(2)
+    with col1:
+        full_name = st.text_input("Full name")
+        age = st.number_input("Age", min_value=18, max_value=70, step=1)
+        employment_sector = st.selectbox(
+            "Employment sector",
+            ["Private", "Government", "Self-employed"]
+        )
+        national_id = st.text_input("National ID / Iqama")
 
-        with col1:
-            national_id = st.text_input("Owner National ID / Iqama", max_chars=10)
-            unn = st.text_input("Unified National Number (UNN)", max_chars=10)
-            mobile = st.text_input("Mobile Number", placeholder="+966xxxxxxxxx")
-
-        with col2:
-            company_name = st.text_input("English Company Name")
-            email = st.text_input("Email Address")
-            dob = st.date_input("Date of birth")
-
-        st.markdown("")
-
-        agree_terms = st.checkbox(
-            "I have read and agree to the Terms & Conditions and Privacy Notice"
+    with col2:
+        mobile = st.text_input("Mobile number")
+        email = st.text_input("Email address")
+        salary = st.number_input("Basic monthly salary (SAR)", min_value=0, step=500)
+        requested_amount = st.number_input(
+            "Requested finance amount (SAR)",
+            min_value=0,
+            step=1000
         )
 
-        consent_data = st.checkbox(
-            "I consent to EMKAN retrieving my data from third parties"
+    st.markdown("")
+
+    # ---- Submit ----
+    submit = st.button("Submit application")
+
+    # ==============================
+    # Processing Demo (Slow & Clear)
+    # ==============================
+    if submit:
+        with st.spinner("Retrieving customer data from core systems..."):
+            time.sleep(2)
+
+        with st.spinner("Validating information..."):
+            time.sleep(2)
+
+        with st.spinner("Running AI fraud screening model..."):
+            time.sleep(2)
+
+        st.success("Application processed successfully ✅")
+
+        st.info(
+            "For demo purposes: remaining customer information was "
+            "automatically retrieved from internal systems and government sources."
         )
-
-        st.markdown("")
-
-        submit = st.form_submit_button("Continue")
-
-        if submit:
-            if not agree_terms:
-                st.warning("Please accept the Terms & Conditions.")
-            else:
-                st.success("Information submitted successfully.")
 
     st.markdown('</div>', unsafe_allow_html=True)
